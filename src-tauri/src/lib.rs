@@ -2,20 +2,25 @@
 // lets clicks through everywhere except the pet, a tray menu, and a settings
 // window. All wheel data handling lives in the web front end.
 
+mod hud_position;
+
+use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::TrayIconBuilder;
 use tauri::{
-    AppHandle, Emitter, LogicalSize, Manager, PhysicalPosition, RunEvent, WebviewUrl, WebviewWindow,
-    WebviewWindowBuilder, Wry,
+    AppHandle, Emitter, LogicalSize, Manager, PhysicalPosition, PhysicalSize, RunEvent, WebviewUrl,
+    WebviewWindow, WebviewWindowBuilder, WindowEvent, Wry,
 };
-use tauri_plugin_window_state::StateFlags;
+use tauri_plugin_window_state::{StateFlags, WindowExt};
 
 const PET: &str = "pet";
+const HUD: &str = "hud";
 const SETTINGS: &str = "settings";
 /// How often the pointer is checked against the pet's clickable areas.
 const CURSOR_POLL: Duration = Duration::from_millis(33);
@@ -38,7 +43,25 @@ impl Rect {
 }
 
 #[derive(Default)]
-struct HitRegions(Mutex<Vec<Rect>>);
+struct HitRegions(Mutex<HashMap<String, Vec<Rect>>>);
+
+#[derive(Default)]
+struct HudState(Mutex<HudData>);
+
+#[derive(Default)]
+struct HudData {
+    payload: Option<Value>,
+    width: f64,
+    height: f64,
+    placement: Option<HudPlacement>,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct HudPlacement {
+    side: &'static str,
+    max_height: f64,
+}
 
 #[derive(Clone, Serialize)]
 struct CursorEvent {
@@ -67,10 +90,226 @@ struct TrayLabels {
 }
 
 #[tauri::command]
-fn set_hit_regions(regions: tauri::State<'_, HitRegions>, rects: Vec<Rect>) {
-    if let Ok(mut current) = regions.0.lock() {
-        *current = rects;
+fn set_hit_regions(window: WebviewWindow, regions: tauri::State<'_, HitRegions>, rects: Vec<Rect>) {
+    if window.label() != PET && window.label() != HUD {
+        return;
     }
+    if let Ok(mut current) = regions.0.lock() {
+        let rects = rects
+            .into_iter()
+            .filter(|r| {
+                [r.x, r.y, r.w, r.h].iter().all(|n| n.is_finite())
+                    && r.w > 0.0
+                    && r.h > 0.0
+                    && r.w <= 4096.0
+                    && r.h <= 4096.0
+            })
+            .take(64)
+            .collect();
+        current.insert(window.label().to_string(), rects);
+    }
+}
+
+#[tauri::command]
+fn update_hud(
+    window: WebviewWindow,
+    app: AppHandle,
+    state: tauri::State<'_, HudState>,
+    payload: Value,
+) -> Result<(), String> {
+    if window.label() != PET {
+        return Err("Only the pet window can update its HUD".into());
+    }
+    {
+        let mut data = state.0.lock().map_err(|e| e.to_string())?;
+        data.payload = Some(payload.clone());
+    }
+    app.emit_to(HUD, "pet://hud-state", payload)
+        .map_err(|e| e.to_string())?;
+    sync_hud(&app).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn hud_ready(
+    window: WebviewWindow,
+    app: AppHandle,
+    state: tauri::State<'_, HudState>,
+) -> Result<(), String> {
+    if window.label() != HUD {
+        return Err("Only the HUD window can signal readiness".into());
+    }
+    let (payload, placement) = {
+        let data = state.0.lock().map_err(|e| e.to_string())?;
+        (data.payload.clone(), data.placement.clone())
+    };
+    if let Some(payload) = payload {
+        app.emit_to(HUD, "pet://hud-state", payload)
+            .map_err(|e| e.to_string())?;
+    }
+    if let Some(placement) = placement {
+        app.emit_to(HUD, "pet://hud-placement", placement)
+            .map_err(|e| e.to_string())?;
+    }
+    sync_hud(&app).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn resize_hud(
+    window: WebviewWindow,
+    app: AppHandle,
+    state: tauri::State<'_, HudState>,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    if window.label() != HUD || !valid_size(width, height, true) {
+        return Err("Invalid HUD size".into());
+    }
+    {
+        let mut data = state.0.lock().map_err(|e| e.to_string())?;
+        data.width = width;
+        data.height = height;
+    }
+    sync_hud(&app).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn hud_action(window: WebviewWindow, app: AppHandle, action: Value) -> Result<(), String> {
+    if window.label() != HUD {
+        return Err("Only the HUD window can send HUD actions".into());
+    }
+    app.emit_to(PET, "pet://hud-action", action)
+        .map_err(|e| e.to_string())
+}
+
+fn valid_size(width: f64, height: f64, allow_hidden: bool) -> bool {
+    width.is_finite()
+        && height.is_finite()
+        && (1.0..=4096.0).contains(&width)
+        && height >= if allow_hidden { 0.0 } else { 1.0 }
+        && height <= 8192.0
+}
+
+/// Older versions saved POSITION only, leaving dimensions at zero in the
+/// plugin's cache. Restore those positions without applying a 0 x 0 size.
+fn geometry_restore_flags(saved: Option<&Value>) -> StateFlags {
+    let valid = |name: &str, max: u64| {
+        saved
+            .and_then(|state| state.get(name))
+            .and_then(Value::as_u64)
+            .is_some_and(|size| size > 0 && size <= max)
+    };
+    if valid("width", 16384) && valid("height", 32768) {
+        StateFlags::POSITION | StateFlags::SIZE
+    } else {
+        StateFlags::POSITION
+    }
+}
+
+fn bottom_right_origin(
+    position: PhysicalPosition<i32>,
+    current: PhysicalSize<u32>,
+    next: PhysicalSize<u32>,
+) -> PhysicalPosition<i32> {
+    PhysicalPosition::new(
+        position.x + current.width as i32 - next.width as i32,
+        position.y + current.height as i32 - next.height as i32,
+    )
+}
+
+fn restore_window_geometry(window: &WebviewWindow) -> tauri::Result<()> {
+    let saved = window
+        .app_handle()
+        .path()
+        .app_config_dir()
+        .ok()
+        .and_then(|dir| std::fs::read(dir.join(tauri_plugin_window_state::DEFAULT_FILENAME)).ok())
+        .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok());
+    window.restore_state(geometry_restore_flags(
+        saved.as_ref().and_then(|states| states.get(window.label())),
+    ))
+}
+
+/// Read state under the lock, then perform native window operations without it.
+fn sync_hud(app: &AppHandle) -> tauri::Result<()> {
+    let (Some(pet), Some(hud)) = (app.get_webview_window(PET), app.get_webview_window(HUD)) else {
+        return Ok(());
+    };
+    let (width, height) = {
+        let state = app.state::<HudState>();
+        let data = state.0.lock().unwrap_or_else(|e| e.into_inner());
+        (data.width, data.height)
+    };
+    if !PET_VISIBLE.load(Ordering::Relaxed) || height <= 0.0 {
+        if hud.is_visible()? {
+            hud.hide()?;
+        }
+        return Ok(());
+    }
+    let Some(monitor) = pet.current_monitor()?.or(app.primary_monitor()?) else {
+        return Ok(());
+    };
+    let scale = monitor.scale_factor();
+    let area = monitor.work_area();
+    let origin = pet.outer_position()?;
+    let size = pet.outer_size()?;
+    let placement = hud_position::place(
+        hud_position::Bounds {
+            x: origin.x as f64,
+            y: origin.y as f64,
+            width: size.width as f64,
+            height: size.height as f64,
+        },
+        hud_position::Bounds {
+            x: area.position.x as f64,
+            y: area.position.y as f64,
+            width: area.size.width as f64,
+            height: area.size.height as f64,
+        },
+        width * scale,
+        height * scale,
+        8.0 * scale,
+    );
+    let next_size = PhysicalSize::new(placement.width, placement.height);
+    let next_position = PhysicalPosition::new(placement.x, placement.y);
+    if hud.outer_position()? != next_position {
+        hud.set_position(next_position)?;
+    }
+    if hud.outer_size()? != next_size {
+        hud.set_size(next_size)?;
+    }
+    let event = HudPlacement {
+        side: placement.side.as_str(),
+        max_height: placement.max_height / scale,
+    };
+    let changed = {
+        let state = app.state::<HudState>();
+        let mut data = state.0.lock().unwrap_or_else(|e| e.into_inner());
+        if data.placement.as_ref() == Some(&event) {
+            false
+        } else {
+            data.placement = Some(event.clone());
+            true
+        }
+    };
+    if changed {
+        app.emit_to(HUD, "pet://hud-placement", event)?;
+    }
+    if !hud.is_visible()? {
+        hud.show()?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn set_pet_always_on_top(window: WebviewWindow, app: AppHandle, on: bool) -> Result<(), String> {
+    if window.label() != PET {
+        return Err("Only the pet window can change its window level".into());
+    }
+    window.set_always_on_top(on).map_err(|e| e.to_string())?;
+    if let Some(hud) = app.get_webview_window(HUD) {
+        hud.set_always_on_top(on).map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -89,7 +328,15 @@ fn set_tray_labels(items: tauri::State<'_, TrayItems>, labels: TrayLabels) -> Re
 /// Resizes the pet window and keeps its bottom-right corner in place, which is
 /// where the pet stands.
 #[tauri::command]
-fn resize_pet(window: WebviewWindow, width: f64, height: f64) -> Result<(), String> {
+fn resize_pet(
+    window: WebviewWindow,
+    app: AppHandle,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    if window.label() != PET || !valid_size(width, height, false) {
+        return Err("Invalid pet size".into());
+    }
     let result = (|| -> tauri::Result<()> {
         let scale = window.scale_factor()?;
         let position = window.outer_position()?;
@@ -98,10 +345,10 @@ fn resize_pet(window: WebviewWindow, width: f64, height: f64) -> Result<(), Stri
         if next == size {
             return Ok(());
         }
-        let x = position.x + size.width as i32 - next.width as i32;
-        let y = position.y + size.height as i32 - next.height as i32;
+        let next_origin = bottom_right_origin(position, size, next);
         window.set_size(next)?;
-        window.set_position(PhysicalPosition::new(x, y))
+        window.set_position(next_origin)?;
+        sync_hud(&app)
     })();
     result.map_err(|e| e.to_string())
 }
@@ -123,9 +370,14 @@ fn quit_app(app: AppHandle) {
 
 fn set_pet_visible(app: &AppHandle, visible: bool) {
     if let Some(window) = app.get_webview_window(PET) {
-        let result = if visible { window.show() } else { window.hide() };
+        let result = if visible {
+            window.show()
+        } else {
+            window.hide()
+        };
         if result.is_ok() {
             PET_VISIBLE.store(visible, Ordering::Relaxed);
+            let _ = sync_hud(app);
         }
     }
 }
@@ -146,6 +398,7 @@ fn show_settings(app: &AppHandle) -> tauri::Result<()> {
         .min_inner_size(360.0, 480.0)
         .center()
         .build()?;
+    restore_window_geometry(&window)?;
     window.set_focus()
 }
 
@@ -169,8 +422,41 @@ fn create_pet(app: &AppHandle) -> tauri::Result<()> {
         let bottom = (area.position.y as f64 + area.size.height as f64) / scale;
         builder = builder.position(right - config.width - 24.0, bottom - config.height);
     }
-    builder.build()?;
+    let window = builder.build()?;
+    // Persist the scene-only size together with its origin. Recreating the old
+    // 380px window on every launch would make the first bottom-anchored resize
+    // move the pet down by the removed HUD space on every restart.
+    restore_window_geometry(&window)?;
     set_pet_visible(app, true);
+    Ok(())
+}
+
+/// The pet's native window contains only its scene. Cards live in their own
+/// window so a hidden card never reserves space above a pet at the screen edge.
+fn create_hud(app: &AppHandle) -> tauri::Result<()> {
+    let on_top = app
+        .get_webview_window(PET)
+        .map(|pet| pet.is_always_on_top())
+        .transpose()?
+        .unwrap_or(true);
+    let hud = WebviewWindowBuilder::new(app, HUD, WebviewUrl::App("hud.html".into()))
+        .title("Squeek Pet status")
+        .inner_size(300.0, 1.0)
+        .resizable(false)
+        .maximizable(false)
+        .minimizable(false)
+        .decorations(false)
+        .transparent(true)
+        .shadow(false)
+        .always_on_top(on_top)
+        .skip_taskbar(true)
+        .visible_on_all_workspaces(true)
+        .focused(false)
+        .focusable(false)
+        .accept_first_mouse(true)
+        .visible(false)
+        .build()?;
+    hud.set_ignore_cursor_events(true)?;
     Ok(())
 }
 
@@ -218,7 +504,9 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     #[cfg(target_os = "macos")]
     {
         tray = tray
-            .icon(tauri::image::Image::from_bytes(include_bytes!("../icons/tray-template.png"))?)
+            .icon(tauri::image::Image::from_bytes(include_bytes!(
+                "../icons/tray-template.png"
+            ))?)
             .icon_as_template(true);
     }
     #[cfg(not(target_os = "macos"))]
@@ -245,35 +533,51 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
 /// position is also forwarded so the hamster can look at it.
 fn watch_cursor(app: AppHandle) {
     std::thread::spawn(move || {
-        let mut ignoring: Option<bool> = None;
+        let mut ignoring: HashMap<&str, bool> = HashMap::new();
         let mut last: Option<(i64, i64, bool)> = None;
         loop {
             std::thread::sleep(CURSOR_POLL);
             if !PET_VISIBLE.load(Ordering::Relaxed) {
                 continue;
             }
-            let Some(window) = app.get_webview_window(PET) else {
+            let Ok(cursor) = app.cursor_position() else {
                 continue;
             };
-            let (Ok(cursor), Ok(origin), Ok(scale)) = (app.cursor_position(), window.inner_position(), window.scale_factor())
-            else {
-                continue;
-            };
-            let x = (cursor.x - origin.x as f64) / scale;
-            let y = (cursor.y - origin.y as f64) / scale;
-            let inside = app
-                .state::<HitRegions>()
-                .0
-                .lock()
-                .map(|rects| rects.iter().any(|r| r.contains(x, y)))
-                .unwrap_or(false);
-            if ignoring != Some(!inside) && window.set_ignore_cursor_events(!inside).is_ok() {
-                ignoring = Some(!inside);
-            }
-            let key = (x.round() as i64, y.round() as i64, inside);
-            if last != Some(key) {
-                last = Some(key);
-                let _ = app.emit_to(PET, "pet://cursor", CursorEvent { x, y, inside });
+            for label in [PET, HUD] {
+                let Some(window) = app.get_webview_window(label) else {
+                    continue;
+                };
+                if label == HUD && !window.is_visible().unwrap_or(false) {
+                    continue;
+                }
+                let (Ok(origin), Ok(scale)) = (window.inner_position(), window.scale_factor())
+                else {
+                    continue;
+                };
+                let x = (cursor.x - origin.x as f64) / scale;
+                let y = (cursor.y - origin.y as f64) / scale;
+                let inside = app
+                    .state::<HitRegions>()
+                    .0
+                    .lock()
+                    .map(|windows| {
+                        windows
+                            .get(label)
+                            .is_some_and(|rects| rects.iter().any(|r| r.contains(x, y)))
+                    })
+                    .unwrap_or(false);
+                if ignoring.get(label) != Some(&!inside)
+                    && window.set_ignore_cursor_events(!inside).is_ok()
+                {
+                    ignoring.insert(label, !inside);
+                }
+                if label == PET {
+                    let key = (x.round() as i64, y.round() as i64, inside);
+                    if last != Some(key) {
+                        last = Some(key);
+                        let _ = app.emit_to(PET, "pet://cursor", CursorEvent { x, y, inside });
+                    }
+                }
             }
         }
     });
@@ -285,14 +589,30 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             set_pet_visible(app, true);
         }))
-        .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(StateFlags::POSITION).build())
-        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(StateFlags::POSITION | StateFlags::SIZE)
+                .with_denylist(&[HUD])
+                .skip_initial_state(PET)
+                .skip_initial_state(SETTINGS)
+                .build(),
+        )
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .plugin(tauri_plugin_opener::init())
         .manage(HitRegions::default())
+        .manage(HudState::default())
         .invoke_handler(tauri::generate_handler![
             set_hit_regions,
             set_tray_labels,
             resize_pet,
+            update_hud,
+            hud_ready,
+            resize_hud,
+            hud_action,
+            set_pet_always_on_top,
             open_settings,
             hide_pet,
             quit_app
@@ -304,18 +624,76 @@ pub fn run() {
             let handle = app.handle().clone();
             build_tray(&handle)?;
             create_pet(&handle)?;
+            create_hud(&handle)?;
             watch_cursor(handle);
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            let pet_geometry_changed = window.label() == PET
+                && matches!(
+                    event,
+                    WindowEvent::Moved(_)
+                        | WindowEvent::Resized(_)
+                        | WindowEvent::ScaleFactorChanged { .. }
+                );
+            let hud_scale_changed =
+                window.label() == HUD && matches!(event, WindowEvent::ScaleFactorChanged { .. });
+            if pet_geometry_changed || hud_scale_changed {
+                let _ = sync_hud(window.app_handle());
+            }
         })
         .build(tauri::generate_context!())
         .expect("error while building Squeek Pet");
 
     app.run(|app, event| {
         // Closing the settings window must not quit the pet.
-        if let RunEvent::ExitRequested { code: None, api, .. } = event {
+        if let RunEvent::ExitRequested {
+            code: None, api, ..
+        } = event
+        {
             if app.get_webview_window(PET).is_some() {
                 api.prevent_exit();
             }
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn legacy_position_only_state_never_restores_a_zero_sized_window() {
+        let legacy = json!({ "width": 0, "height": 0, "x": 500, "y": 40 });
+        let flags = geometry_restore_flags(Some(&legacy));
+        assert!(flags.contains(StateFlags::POSITION));
+        assert!(!flags.contains(StateFlags::SIZE));
+        assert!(!geometry_restore_flags(None).contains(StateFlags::SIZE));
+    }
+
+    #[test]
+    fn scene_only_dimensions_are_restored_together_with_their_origin() {
+        let saved = json!({ "width": 480, "height": 322, "x": 500, "y": 40 });
+        assert!(
+            geometry_restore_flags(Some(&saved)).contains(StateFlags::POSITION | StateFlags::SIZE)
+        );
+        let malformed = json!({ "width": 480, "height": -322 });
+        assert!(!geometry_restore_flags(Some(&malformed)).contains(StateFlags::SIZE));
+    }
+
+    #[test]
+    fn migration_preserves_the_bottom_edge_once_and_restarts_do_not_drift() {
+        let old_size = PhysicalSize::new(600, 760);
+        let scene_size = PhysicalSize::new(480, 322);
+        let old_origin = PhysicalPosition::new(1200, 100);
+        let migrated = bottom_right_origin(old_origin, old_size, scene_size);
+        assert_eq!(migrated.y + scene_size.height as i32, 860);
+        // The plugin now restores scene_size rather than the config's old
+        // 380px height. Neither the next launch nor later launches move it.
+        let first_restart = bottom_right_origin(migrated, scene_size, scene_size);
+        let second_restart = bottom_right_origin(first_restart, scene_size, scene_size);
+        assert_eq!(first_restart, migrated);
+        assert_eq!(second_restart, migrated);
+    }
 }

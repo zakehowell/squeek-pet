@@ -5,6 +5,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { disable as disableAutostart, enable as enableAutostart, isEnabled as autostartEnabled } from "@tauri-apps/plugin-autostart";
 import { openUrl as openExternal } from "@tauri-apps/plugin-opener";
 import type { Settings } from "../core/settings";
+import type { HudAction, HudState } from "../pet/hud-state";
 
 // Everything that needs the desktop shell goes through here. In a plain
 // browser (npm run dev) each call falls back to a harmless equivalent, so the
@@ -55,7 +56,13 @@ export const desktop = {
     if (inTauri) quietly(invoke("resize_pet", { width, height }));
   },
   setAlwaysOnTop(on: boolean) {
-    if (inTauri) quietly(getCurrentWindow().setAlwaysOnTop(on));
+    if (inTauri) quietly(invoke("set_pet_always_on_top", { on }));
+  },
+  updateHud(payload: HudState) {
+    if (inTauri) quietly(invoke("update_hud", { payload }));
+  },
+  onHudAction(handler: (action: HudAction) => void) {
+    if (inTauri) quietly(listen<HudAction>("pet://hud-action", (event) => handler(event.payload)));
   },
   hidePet() {
     if (inTauri) quietly(invoke("hide_pet"));

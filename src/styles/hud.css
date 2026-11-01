@@ -1,0 +1,88 @@
+/* These rules only apply to the separate desktop card window. The browser
+   preview retains its original scene and HUD layout. */
+body.detached-hud {
+  background: transparent;
+  pointer-events: none;
+}
+
+body.detached-hud.hud-preview {
+  background: #e8e4e0;
+}
+
+.detached-hud #hud-viewport {
+  position: absolute;
+  inset: 0 auto auto 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.detached-hud #hud-content {
+  position: relative;
+}
+
+.detached-hud #hud-viewport[data-scrollable="true"] {
+  pointer-events: auto;
+}
+
+.detached-hud #hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 300px;
+  padding: 10px;
+  transform-origin: 0 0;
+}
+
+.detached-hud .hud-stack {
+  position: static;
+  flex-direction: column-reverse;
+  gap: 6px;
+}
+
+.detached-hud .hud-stack[hidden] {
+  display: none;
+}
+
+.detached-hud .panel {
+  position: relative;
+  inset: auto;
+  box-sizing: border-box;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  pointer-events: auto;
+}
+
+.detached-hud .bubble {
+  flex: none;
+}
+
+.detached-hud .toast {
+  box-sizing: border-box;
+  flex: none;
+  max-width: 100%;
+}
+
+.detached-hud .toast[data-interactive="true"] {
+  pointer-events: auto;
+}
+
+.detached-hud[data-side="below"] .hud-stack {
+  flex-direction: column;
+}
+
+.detached-hud[data-side="below"] .panel {
+  order: -1;
+}
+
+.detached-hud[data-side="below"] .bubble::after {
+  top: -6px;
+  bottom: auto;
+  border-radius: 3px 0 0 0;
+  box-shadow: -1px -1px 0 var(--card-line);
+}

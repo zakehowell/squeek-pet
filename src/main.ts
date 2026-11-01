@@ -2,7 +2,7 @@ import "./styles/scene.css";
 import "./styles/pet.css";
 import { SceneView, toScene, type Frame } from "./art/rig";
 import { ANCHOR, HULL } from "./art/hamster";
-import { NEST, SCENE_WIDTH, WHEEL } from "./art/scene";
+import { NEST, SCENE_HEIGHT, SCENE_WIDTH, WHEEL } from "./art/scene";
 import { createStatusClient } from "./core/api";
 import { demoSnapshot } from "./core/demo";
 import { t, type MessageKey } from "./core/i18n";
@@ -11,6 +11,7 @@ import { createPoller } from "./core/poller";
 import { PERFORMANCE, SCALE_PRESETS, loadSettings, petLayout, sanitize, saveSettings, type Settings } from "./core/settings";
 import { Director, idleInput } from "./pet/director";
 import { Hud } from "./pet/hud";
+import { DesktopHud } from "./pet/desktop-hud";
 import { mountPlayDock } from "./pet/play-dock";
 import { PULSE_URL, bubbleContent, panelContent, petLabel, toastContent } from "./pet/present";
 import { desktop, inTauri, type HitRect, type MenuItems } from "./platform/desktop";
@@ -37,7 +38,8 @@ let director = new Director(Date.now());
 let lastFrame: Frame | null = null;
 let panelOpen = false;
 
-const hud = new Hud(root, {
+const HudView = inTauri ? DesktopHud : Hud;
+const hud = new HudView(root, {
   openUrl: (url) => desktop.openUrl(url),
   openSettings: () => desktop.openSettings(),
   closePanel: () => setPanel(false),
@@ -93,7 +95,8 @@ function startSource() {
 let sizeFrame = 0;
 
 /**
- * Scales the layout and resizes the window around its bottom-right corner.
+ * The desktop window wraps only the scene; cards have a separate window so
+ * reserving room for them never prevents dragging the pet to a screen edge.
  * A slider drag sends many changes; they are coalesced to one resize per frame.
  */
 function applySize(immediately = false) {
@@ -102,7 +105,8 @@ function applySize(immediately = false) {
     const layout = petLayout(settings.scale);
     root.style.transform = `scale(${layout.zoom})`;
     root.style.setProperty("--stage", String(layout.stage));
-    desktop.resizePet(layout.width, layout.height);
+    if (hud instanceof DesktopHud) hud.setZoom(layout.zoom);
+    desktop.resizePet(layout.width, Math.ceil(SCENE_HEIGHT * layout.stage * layout.zoom));
   };
   if (immediately) apply();
   else if (!sizeFrame) sizeFrame = requestAnimationFrame(apply);
@@ -440,6 +444,7 @@ window.setInterval(() => {
 // ---- Start ------------------------------------------------------------------
 
 document.documentElement.lang = settings.language === "zh" ? "zh-CN" : "en";
+if (inTauri) document.body.classList.add("desktop");
 applySize(true);
 desktop.setAlwaysOnTop(settings.alwaysOnTop);
 updateTray();

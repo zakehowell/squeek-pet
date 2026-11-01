@@ -55,6 +55,8 @@ Requests are plain GETs, so the browser engine sends no CORS preflight. Conditio
 
 Everything outside the hamster, wheel and nest is click-through, so the pet never blocks the apps underneath.
 
+On the desktop, status bubbles and the details panel live in a separate transparent window. They appear above the pet when there is room, and below it near the top of the screen. The pet no longer reserves empty space for a bubble, so it can be dragged to the top edge. Cards stay within the current screen's work area; a tall details panel scrolls when space is limited.
+
 ### Settings
 
 Language (English / 中文, defaults to the system language), pet size (a slider from 40% to 150% in 5% steps, 75% by default; below 80% only the pet shrinks, so bubbles and the panel stay readable), animation performance (Eco 15 fps / Balanced 30 fps / Smooth 60 fps, which also sets the poll interval), work units per bean, always on top, launch at startup, sounds (off by default), activity notifications, and demo mode.

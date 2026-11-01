@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "hud",
+  "description": "The detached pet cards can receive display updates and report their clickable areas.",
+  "windows": ["hud"],
+  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten"]
+}

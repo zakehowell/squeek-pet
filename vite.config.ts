@@ -16,6 +16,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         pet: page("index.html"),
+        hud: page("hud.html"),
         settings: page("settings.html"),
       },
     },
