@@ -10,13 +10,23 @@
 
 ![Squeektoshi 睡觉、醒来、奔跑、吃豆、庆祝结算区块、被摸头、等数据和生气](docs/screenshots/hamster.png)
 
-> 状态：**MVP，版本 0.1.0。** 没有现成的安装包，需要[从源码编译](#从源码安装)，几分钟就好。已经在 Linux 和 Apple 芯片的 Mac 上编译运行过，**Windows 还没编译过**。
+> 状态：**MVP，版本 0.1.0。** Windows 可以直接[下载安装包](#windows)；macOS 和 Linux 需要[从源码编译](#从源码安装)，几分钟就好。已经在 Linux、Apple 芯片的 Mac 和 GitHub 的 Windows 机器上编译运行过。
 
 ## 安全和隐私
 
 - 只读：只访问一个公开接口 `GET https://api.squeekchain.com/v1/status`。不连钱包，不碰私钥，不签名，不发交易。
 - 没有账号、没有统计、不收集个人数据。设置只保存在你自己的电脑上。
 - 只会打开 Squeek Pulse、SqueekChain 文档和 Sepolia 区块浏览器的链接。
+
+## Windows
+
+1. 打开[最新版本](https://github.com/zakehowell/squeek-pet/releases/latest)，下载文件名以 `-setup.exe` 结尾的安装包（`.msi` 也可以）。适用于 64 位 Windows 10 和 11。
+2. 双击运行。安装包没有代码签名，第一次运行时 Windows 会提示「Windows 已保护你的电脑」，点「更多信息」，再点「仍要运行」。
+3. 装好后，仓鼠会出现在右下角任务栏上方。菜单在通知区域的 Squeek Pet 图标里（如果被收起来了，点 `^`）。卸载：设置 → 应用。
+
+安装包由 [GitHub Actions](.github/workflows/release.yml) 用本仓库的源码、在这个版本对应的提交上自动编译，没有人手动编译过。想核对下载的文件，可以和版本页里的 `SHA256SUMS.txt` 对比，或者运行 `gh attestation verify <文件> --repo zakehowell/squeek-pet`。
+
+如果 Windows 11 打开了「智能应用控制」，它会直接拦下没有签名的程序，没有「仍要运行」，这种电脑上暂时装不了。
 
 ## 从源码安装
 
@@ -28,7 +38,7 @@
 - [Rust](https://www.rust-lang.org/zh-CN/tools/install)（stable 版，用 rustup 安装）。
 - macOS：Xcode 命令行工具，在终端运行 `xcode-select --install`。
 - Linux：按 [Tauri 环境说明](https://v2.tauri.app/zh-cn/start/prerequisites/) 安装 WebKitGTK 等依赖。
-- Windows：还没编译和测试过。可以按 Tauri 环境说明试试，但可能会遇到问题。
+- Windows：按 [Tauri 环境说明](https://v2.tauri.app/zh-cn/start/prerequisites/) 安装 Microsoft C++ 生成工具（勾选「使用 C++ 的桌面开发」）和 WebView2（Windows 11 和更新过的 Windows 10 已自带）。一般人直接用[安装包](#windows)就好。
 
 **2. 下载并编译**
 
@@ -45,12 +55,13 @@ npm run desktop:build
 
 - macOS：`src-tauri/target/release/bundle/macos/Squeek Pet.app`，拖进"应用程序"文件夹即可。`src-tauri/target/release/bundle/dmg/` 里还有一个 `.dmg`。
 - Linux：安装包在 `src-tauri/target/release/bundle/` 里（deb、rpm、appimage）。
+- Windows：安装包在 `src-tauri\target\release\bundle\nsis\` 和 `msi\` 里。
 
 仓鼠会出现在屏幕右下角。从托盘或菜单栏图标可以退出。
 
 以后更新：先运行 `git pull`，再运行一次 `npm ci` 和 `npm run desktop:build`。
 
-没有签名的安装包。如果把编译好的 app 直接拷给别人，对方第一次打开会被 macOS 拦下（macOS 15 及以后：系统设置 → 隐私与安全性 → 仍要打开；更早的版本：右键 → 打开），Windows 也可能弹出 SmartScreen 警告。让每个人在自己电脑上从源码编译，就没有这个问题。
+所有安装包都没有代码签名。Windows 安装包第一次运行会弹出 SmartScreen 提示，处理方法见[上面](#windows)。如果把自己编译的 Mac app 直接拷给别人，对方第一次打开会被 macOS 拦下（macOS 15 及以后：系统设置 → 隐私与安全性 → 仍要打开；更早的版本：右键 → 打开）。让每个人在自己电脑上从源码编译，就没有这个问题。
 
 ## 怎么和它玩
 

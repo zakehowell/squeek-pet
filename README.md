@@ -12,7 +12,7 @@ Normally there is only a small hamster in the corner of the screen. Hover it for
 
 ![Demo loop: sleeping, waking, running, eating, settled block, offline](docs/screenshots/demo-loop.png)
 
-> Status: **MVP, version 0.1.0.** There are no ready-made installers: [build it from source](#install-from-source), which takes a few minutes. Built and launched on Linux and on an Apple Silicon Mac. **Not yet built on Windows**, and how it looks on the macOS desktop is still unchecked — see [What has been verified](#what-has-been-verified).
+> Status: **MVP, version 0.1.0.** On Windows, [download the installer](#windows). On macOS and Linux, [build it from source](#install-from-source), which takes a few minutes. Built and launched on Linux, on an Apple Silicon Mac and on a Windows machine at GitHub. How it looks on real desktops is only partly checked — see [What has been verified](#what-has-been-verified).
 
 ## How the real wheel drives the pet
 
@@ -71,6 +71,16 @@ A scripted 60-second loop for trying the animations while the real hamster rests
 - Links open only Squeek Pulse, the SqueekChain docs and the Sepolia explorer (`eth-sepolia.blockscout.com`), enforced by the app's capability file.
 - API values reach the screen only as text, never as HTML.
 
+## Windows
+
+1. Open the [latest release](https://github.com/zakehowell/squeek-pet/releases/latest) and download the file ending in `-setup.exe` (the `.msi` works too). For 64-bit Windows 10 and 11.
+2. Run it. The installers are not code-signed, so the first time Windows SmartScreen says "Windows protected your PC": click **More info**, then **Run anyway**.
+3. The hamster appears above the taskbar in the bottom-right corner. Its menu is the Squeek Pet icon in the notification area (click `^` if Windows hides it there). Uninstall it from Settings → Apps.
+
+The installers are built by [GitHub Actions](.github/workflows/release.yml) from the source in this repository, at the commit the release points to; nobody builds them by hand. To check a download, compare it with `SHA256SUMS.txt` in the release, or run `gh attestation verify <file> --repo zakehowell/squeek-pet`.
+
+If Windows 11's Smart App Control is on, it blocks unsigned apps outright and offers no "Run anyway", so the installer won't run there.
+
 ## Install from source
 
 You build the app on your own computer. An app you build yourself is not quarantined, so macOS opens it without the "unidentified developer" warning.
@@ -81,7 +91,7 @@ You build the app on your own computer. An app you build yourself is not quarant
 - [Rust](https://www.rust-lang.org/tools/install) (stable), via rustup.
 - macOS: Xcode Command Line Tools, `xcode-select --install`.
 - Linux: the WebKitGTK packages listed in the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
-- Windows: not built or tested yet. The [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) (Microsoft C++ Build Tools, WebView2) should be enough, but expect problems.
+- Windows: the Microsoft C++ Build Tools with "Desktop development with C++", and WebView2 (already part of Windows 11 and of up-to-date Windows 10), as in the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/). Most people should use the [installer](#windows) instead.
 
 **2. Download and build**
 
@@ -98,6 +108,7 @@ The first build downloads and compiles the Rust crates, so allow a few minutes. 
 
 - macOS: `src-tauri/target/release/bundle/macos/Squeek Pet.app`. Drag it into Applications. A `.dmg` is in `src-tauri/target/release/bundle/dmg/`.
 - Linux: the packages are in `src-tauri/target/release/bundle/` (`deb`, `rpm`, `appimage`).
+- Windows: the installers are in `src-tauri\target\release\bundle\nsis\` and `msi\`.
 
 The pet appears in the bottom-right corner of the screen. Quit it from the tray or menu-bar icon.
 
@@ -116,7 +127,7 @@ npm run desktop        # the real desktop pet, in development mode
 
 ![All poses](docs/screenshots/poses.png)
 
-There are no signed installers. If you copy an app you built to someone else's computer, macOS blocks it the first time (on macOS 15 and later, System Settings → Privacy & Security → Open Anyway; on earlier versions, right-click → Open) and Windows SmartScreen may warn. Building from source on each computer avoids this.
+Nothing is code-signed. The Windows installers trigger SmartScreen the first time, as described [above](#windows). If you copy a Mac app you built to someone else's computer, macOS blocks it the first time (on macOS 15 and later, System Settings → Privacy & Security → Open Anyway; on earlier versions, right-click → Open). Building from source on each computer avoids this.
 
 ## What has been verified
 
