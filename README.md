@@ -133,13 +133,14 @@ Nothing is code-signed. The Windows installers trigger SmartScreen the first tim
 
 | Check | Result |
 | --- | --- |
-| Unit tests (Vitest) | 79 passing: API parsing and validation, Retry-After, backoff, state machine transitions, bean ledger (epochs, resets, caps), offline and clock-skew rules, demo loop, bubble and panel texts in both languages, settings and the pet size layout, the parts of the hamster drawing that the animation needs, and the head turning to profile while running. |
+| Unit tests (Vitest) | 81 passing: API parsing and validation, Retry-After, backoff, state machine transitions, bean ledger (epochs, resets, caps), offline and clock-skew rules, demo loop, bubble and panel texts in both languages, settings and the pet size layout, the parts of the hamster drawing that the animation needs, the head turning to profile while running, and the Wake and Feed reactions, which leave the data untouched. |
 | Type checks | `tsc` strict, app and tests. |
 | Live API | Pet page read the real `/v1/status` on 2026-10-31 (wheel idle, work 62,576, settled block #5,570) and showed it correctly in both languages. |
 | Animations | Every state captured frame by frame through the demo loop. |
 | Desktop build on Linux | `cargo build` and `clippy` clean; the app launched on a virtual X display, placed itself bottom-right and showed the sleeping pet on live data (Linux WebKit, the same engine family as macOS). |
 | Desktop build on macOS | On an Apple Silicon Mac (macOS 26.6): the unit tests and type checks passed, `npm run desktop` compiled in about a minute and launched with no errors, and on 2026-11-01 a release build produced the `.app` (4.1 MiB) and `.dmg` (2.9 MiB) in 79 seconds. The same day a fresh clone of this repository went through `npm ci`, the tests, the type checks and an app-only build in 89 seconds. |
-| **Not verified yet** | On macOS, what the pet looks like on screen: transparency over the desktop, click-through, drag and the menu bar icon. Windows builds. Multi-monitor and mixed DPI. Autostart. |
+| Desktop build on Windows | On 2026-11-02 GitHub Actions built this repository on Windows Server 2025 (build 26100, the same build as Windows 11 24H2): the 81 unit tests passed, and a 4 min 34 s release build produced the `-setup.exe` (1.3 MiB) and the `.msi` (1.9 MiB). The `-setup.exe` installed silently, the pet started and was still running 30 seconds later, and a screenshot showed the sleeping hamster above the taskbar in the bottom-right corner, with the desktop visible through its transparent window. This check runs again for every change. |
+| **Not verified yet** | On macOS, what the pet looks like on screen: transparency over the desktop, click-through, drag and the menu bar icon. On Windows, anything done by hand: click-through, drag, the menus and tray icon, bubbles and the details panel, SmartScreen on a real PC, installing from the `.msi`, and Windows 10. Multi-monitor and mixed DPI. Autostart. |
 
 ## Project layout
 
