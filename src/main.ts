@@ -4,6 +4,7 @@ import { SceneView, toScene, type Frame } from "./art/rig";
 import { ANCHOR, HULL } from "./art/hamster";
 import { NEST, SCENE_HEIGHT, SCENE_WIDTH, WHEEL } from "./art/scene";
 import { createStatusClient } from "./core/api";
+import { createLiveLink } from "./core/live";
 import { demoSnapshot } from "./core/demo";
 import { t, type MessageKey } from "./core/i18n";
 import { PetMachine, type Effect, type MachineConfig } from "./core/pet-machine";
@@ -12,8 +13,9 @@ import { PERFORMANCE, SCALE_PRESETS, loadSettings, petLayout, sanitize, saveSett
 import { Director, idleInput } from "./pet/director";
 import { Hud } from "./pet/hud";
 import { DesktopHud } from "./pet/desktop-hud";
+import { LiveButton } from "./pet/live-button";
 import { mountPlayDock } from "./pet/play-dock";
-import { PULSE_URL, bubbleContent, panelContent, petLabel, toastContent } from "./pet/present";
+import { PULSE_URL, bubbleContent, offersLiveStream, panelContent, petLabel, toastContent } from "./pet/present";
 import { desktop, inTauri, type HitRect, type MenuItems } from "./platform/desktop";
 import { Sounds } from "./sound";
 
@@ -44,6 +46,10 @@ const hud = new HudView(root, {
   openSettings: () => desktop.openSettings(),
   closePanel: () => setPanel(false),
 });
+
+// While the real hamster runs, hovering him offers @squeekchain's X stream.
+const liveLink = createLiveLink();
+const liveButton = new LiveButton(root, () => desktop.openUrl(liveLink.url()));
 
 // ---- Data: the live API, or the clearly labelled demo loop -----------------
 
@@ -365,13 +371,21 @@ let hudAt = 0;
 let bubbleShown = false;
 function refreshHud(now: number, force = false) {
   const clock = performance.now();
-  const showBubble = !panelOpen && (input.hover ? clock - hoverSince > 250 : clock - leftAt < 400 && leftAt > hoverSince);
+  const hovering = input.hover && clock - hoverSince > 250;
+  const leftFor = !input.hover && leftAt > hoverSince ? clock - leftAt : Infinity;
+  const showBubble = !panelOpen && (hovering || leftFor < 400);
+  // The pill waits a little longer, so the pointer can travel from the
+  // hamster to it across the gap beside the wheel.
+  const showLive = !panelOpen && offersLiveStream(machine.state) && (hovering || leftFor < 900);
   // Text refreshes twice a second; showing or hiding the bubble happens at once.
-  if (!force && now - hudAt < 500 && showBubble === bubbleShown) return;
+  if (!force && now - hudAt < 500 && showBubble === bubbleShown && showLive === liveButton.visible) return;
   hudAt = now;
   bubbleShown = showBubble;
   const lang = settings.language;
   const state = machine.state;
+  if (showLive && !liveButton.visible) void liveLink.refresh();
+  liveButton.setLabels({ text: tr("live.watch"), title: tr("live.title") });
+  liveButton.setVisible(showLive);
   hud.setTag(petLabel(state, lang));
   hud.setPanel(panelOpen ? panelContent(state, now, lang) : null, {
     pulse: tr("panel.openPulse"),
@@ -400,6 +414,10 @@ function updateHitRegions(frame: Frame, now: number) {
     box(154, 182, NEST.x + 46 - 154, 30),
     box(left - 6, high - 6, right - left + 12, low - high + 12),
   ];
+  // While it shows, the live pill counts as part of the pet: hovering it
+  // keeps it open, and the desktop shell lets its clicks through to it.
+  const live = liveButton.rect();
+  if (live) petBoxes.push({ x: live.x, y: live.y, w: live.width, h: live.height });
   const rects: HitRect[] = [...petBoxes, ...hud.interactiveRects().map((r) => ({ x: r.x, y: r.y, w: r.width, h: r.height }))].map((r) => ({
     x: Math.floor(r.x),
     y: Math.floor(r.y),

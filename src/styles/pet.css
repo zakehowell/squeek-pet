@@ -370,6 +370,94 @@ body.desktop #pet {
   pointer-events: none;
 }
 
+/* "Live on X" pill beside the wheel while the real hamster runs. It keeps its
+   size when the scene shrinks below 80% and hugs the window's right edge, so
+   it never covers the wheel. */
+.live-link {
+  position: absolute;
+  right: 8px;
+  bottom: calc(126px * var(--stage, 1));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 9px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: var(--shadow), 0 0 0 1px var(--card-line);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: var(--ink);
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 750;
+  line-height: 16px;
+  white-space: nowrap;
+  cursor: pointer;
+  animation: pop-in 0.18s ease-out;
+  transition:
+    background 120ms ease,
+    transform 80ms ease;
+}
+
+.live-link[hidden] {
+  display: none;
+}
+
+.live-link:hover {
+  background: #f3eeff;
+}
+
+.live-link:active {
+  transform: translateY(1px);
+}
+
+.live-link__dot {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f4212e;
+}
+
+.live-link__dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: #f4212e;
+  animation: live-ping 1.6s ease-out infinite;
+}
+
+.live-link__arrow {
+  color: var(--accent-ink);
+  font-weight: 800;
+}
+
+@keyframes live-ping {
+  from {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(2.6);
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .live-link:hover {
+    background: rgba(56, 47, 70, 0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-link__dot::after {
+    animation: none;
+    opacity: 0;
+  }
+}
+
 @keyframes pop-in {
   from {
     opacity: 0;

@@ -14,9 +14,9 @@
 
 ## 安全和隐私
 
-- 只读：只访问一个公开接口 `GET https://api.squeekchain.com/v1/status`。不连钱包，不碰私钥，不签名，不发交易。
+- 只读：主要只访问一个公开接口 `GET https://api.squeekchain.com/v1/status`；「在 X 看直播」按钮出现时，还会读一下 Squeek Chain 的直播描述文件 `https://media.squeekchain.com/live/current.json`（最多 30 秒一次）。不连钱包，不碰私钥，不签名，不发交易。
 - 没有账号、没有统计、不收集个人数据。设置只保存在你自己的电脑上。
-- 只会打开 Squeek Pulse、SqueekChain 文档和 Sepolia 区块浏览器的链接。
+- 只会打开 Squeek Pulse、SqueekChain 文档、Sepolia 区块浏览器和 @squeekchain 的 X 直播链接。
 
 ## Windows
 
@@ -68,6 +68,7 @@ npm run desktop:build
 | 你 | 仓鼠 |
 | --- | --- |
 | 鼠标移上去 | 看着你，显示状态气泡（睡觉时显示 `Zzz…`） |
+| 真实仓鼠在跑时鼠标移上去 | 跑轮右边出现「在 X 看直播」按钮，点一下就去看 @squeekchain 的直播 |
 | 鼠标在附近移动 | 眼睛跟着转 |
 | 单击 | 眨眨眼；打开声音时会吱一声 |
 | 快速连点四下 | 生一会儿气 |
@@ -79,6 +80,15 @@ npm run desktop:build
 设置里可以改：语言（中文 / English，默认跟随系统）、大小（40% 到 150%，默认 75%）、动画流畅度（省电 15 帧、均衡 30 帧、流畅 60 帧，也决定读取频率）、每颗豆子代表的工作量、置顶、开机启动、声音（默认关闭）、活动通知和演示模式。演示模式始终标着 `DEMO`，不会和真实数据混在一起。
 
 桌面版的状态气泡和详情面板使用独立的透明窗口：上方空间足够时显示在上面，宠物靠近屏幕顶部时自动显示在下面。气泡不再占用宠物窗口的空白区域，因此可以把宠物拖到顶部。卡片会避开当前屏幕的菜单栏和 Dock，空间不足时详情内容可以滚动查看。
+
+## 看直播
+
+[@squeekchain](https://x.com/squeekchain) 会在 X 上直播 Squeektoshi 的跑轮，每场直播的链接都不一样。只有真实仓鼠在跑时（真实硬件数据；演示、模拟、回放数据都不会出现），鼠标移到仓鼠上，跑轮右边才会出现「在 X 看直播」按钮。
+
+- 如果 Squeek Chain 的直播描述文件显示 X 上正在直播，按钮直接打开那一场直播（`x.com/i/broadcasts/…`）。
+- 否则打开 [@squeekchain 主页](https://x.com/squeekchain)，从主页再点一下进入当前直播。
+
+这个描述文件目前只对 squeekchain.com 自己开放，所以现在按钮总是打开主页。等 Squeek Chain 允许本应用的来源（macOS 和 Linux 是 `tauri://localhost`，Windows 是 `http://tauri.localhost`）之后，按钮会自动改成直接打开直播，不需要发新版本。
 
 ## 许可
 
