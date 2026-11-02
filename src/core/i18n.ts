@@ -116,6 +116,8 @@ const en = {
   "play.awake": "He's already awake.",
   "web.subtitle": "A little hamster that runs when Squeektoshi runs.",
   "web.hint": "Pat, feed or wake him. Live wheel data only — no wallet, no transactions.",
+  "live.watch": "Live on X",
+  "live.title": "Watch @squeekchain's live stream on X",
 };
 
 type Key = keyof typeof en;
@@ -236,6 +238,8 @@ const zh: Record<Key, string> = {
   "play.awake": "他醒着呢。",
   "web.subtitle": "Squeektoshi 跑轮时，他也会一起跑。",
   "web.hint": "摸摸、喂豆、叫醒他。只读跑轮数据，不连钱包、不发交易。",
+  "live.watch": "在 X 看直播",
+  "live.title": "去 X 看 @squeekchain 的直播",
 };
 
 const tables: Record<Language, Record<Key, string>> = { en, zh };

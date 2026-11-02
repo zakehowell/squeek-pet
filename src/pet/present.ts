@@ -67,6 +67,15 @@ export function badgeFor(state: PetState, lang: Language): Badge | null {
   return { text: t(lang, PROVENANCE_BADGE[provenance]), tone: provenance === "hardware" ? "live" : "label" };
 }
 
+/**
+ * The "watch live on X" pill only offers itself while the real hamster runs:
+ * live hardware data in running mode. Demo, simulated, replayed and stale
+ * data never claim a broadcast.
+ */
+export function offersLiveStream(state: PetState): boolean {
+  return state.mode === "running" && badgeFor(state, "en")?.tone === "live";
+}
+
 /** The always-visible tag on the pet itself: only for data that is not live hardware. */
 export function petLabel(state: PetState, lang: Language): string | null {
   const badge = badgeFor(state, lang);

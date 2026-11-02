@@ -18,6 +18,8 @@ Normally there is only a small hamster in the corner of the screen. Hover it for
 
 Everything comes from one read-only request, `GET https://api.squeekchain.com/v1/status` (schema version 1), polled every 2 to 10 seconds depending on the performance setting.
 
+The "Live on X" button is the one exception: when it appears it also reads Squeek Chain's live descriptor, `https://media.squeekchain.com/live/current.json`, at most every 30 seconds (see [Watching the live stream](#watching-the-live-stream)).
+
 | API field | What the pet does |
 | --- | --- |
 | `measurement.coreStatus` = `ACTIVE` | Wakes up (eyes, ears, shake), hops onto the wheel and runs side-on, looking ahead along the wheel. |
@@ -43,6 +45,7 @@ Requests are plain GETs, so the browser engine sends no CORS preflight. Conditio
 | You | The pet |
 | --- | --- |
 | Hover | Looks at the pointer, shows the status bubble (and `Zzz…` when asleep). |
+| Hover while the real hamster runs | A "Live on X" button appears beside the wheel; click it to watch @squeekchain's live stream. |
 | Move the pointer nearby | Eyes follow it. |
 | Click | Blinks, a little note, squeaks if sounds are on. |
 | Four quick clicks | Gets grumpy for a moment. |
@@ -54,6 +57,15 @@ Requests are plain GETs, so the browser engine sends no CORS preflight. Conditio
 | Browser page (Pat / Feed / Wake) | The hosted build adds three buttons, or press `P`, `F` or `W`. Pat gives a heart, Feed gives a small treat, Wake stretches without changing the wheel state. Presentation only. |
 
 Everything outside the hamster, wheel and nest is click-through, so the pet never blocks the apps underneath.
+
+### Watching the live stream
+
+[@squeekchain](https://x.com/squeekchain) streams Squeektoshi's wheel on X, and every stream gets a new address. While the real hamster runs (live hardware data only, never demo, simulated or replayed data), hovering the pet shows a "Live on X" button beside the wheel.
+
+- If Squeek Chain's live descriptor says an X broadcast is live, the button opens that broadcast (`x.com/i/broadcasts/…`) directly.
+- Otherwise it opens the [@squeekchain profile](https://x.com/squeekchain), one click away from the current stream.
+
+The descriptor currently answers only squeekchain.com's own origin, so for now the button always opens the profile. It switches to the direct broadcast link by itself once Squeek Chain allows the app's origins (`tauri://localhost` on macOS and Linux, `http://tauri.localhost` on Windows); no new release is needed.
 
 On the desktop, status bubbles and the details panel live in a separate transparent window. They appear above the pet when there is room, and below it near the top of the screen. The pet no longer reserves empty space for a bubble, so it can be dragged to the top edge. Cards stay within the current screen's work area; a tall details panel scrolls when space is limited.
 
@@ -69,9 +81,9 @@ A scripted 60-second loop for trying the animations while the real hamster rests
 
 ## Safety and privacy
 
-- Read-only: one public API, no wallet connection, no private keys, no signing, no transactions.
+- Read-only: public endpoints only (the status API, plus the live descriptor while the "Live on X" button shows), no wallet connection, no private keys, no signing, no transactions.
 - No accounts, analytics or personal data. Settings stay in local storage on the device.
-- Links open only Squeek Pulse, the SqueekChain docs and the Sepolia explorer (`eth-sepolia.blockscout.com`), enforced by the app's capability file.
+- Links open only Squeek Pulse, the SqueekChain docs, the Sepolia explorer (`eth-sepolia.blockscout.com`) and @squeekchain's live stream on X (`x.com/squeekchain` and `x.com/i/broadcasts/…`), enforced by the app's capability file.
 - API values reach the screen only as text, never as HTML.
 
 ## Windows

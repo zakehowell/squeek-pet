@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "What the pet and settings windows may do. Links only open Squeek Pulse, the SqueekChain docs and the Sepolia explorer.",
+  "description": "What the pet and settings windows may do. Links only open Squeek Pulse, the SqueekChain docs, the Sepolia explorer and @squeekchain's live stream on X.",
   "windows": ["pet", "settings"],
   "permissions": [
     "core:default",
@@ -12,7 +12,9 @@
       "allow": [
         { "url": "https://squeekpulse.xyz/*" },
         { "url": "https://docs.squeekchain.com/*" },
-        { "url": "https://eth-sepolia.blockscout.com/*" }
+        { "url": "https://eth-sepolia.blockscout.com/*" },
+        { "url": "https://x.com/squeekchain" },
+        { "url": "https://x.com/i/broadcasts/*" }
       ]
     },
     "autostart:allow-enable",
