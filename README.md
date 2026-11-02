@@ -12,7 +12,7 @@ Normally there is only a small hamster in the corner of the screen. Hover it for
 
 ![Demo loop: sleeping, waking, running, eating, settled block, offline](docs/screenshots/demo-loop.png)
 
-> Status: **MVP, version 0.1.0.** There are no ready-made installers: [build it from source](#install-from-source), which takes a few minutes. Built and launched on Linux and on an Apple Silicon Mac. **Not yet built on Windows**, and how it looks on the macOS desktop is still unchecked — see [What has been verified](#what-has-been-verified).
+> Status: **MVP, version 0.1.0.** On Windows, [download the installer](#windows). On macOS and Linux, [build it from source](#install-from-source), which takes a few minutes. Built and launched on Linux, on an Apple Silicon Mac and on a Windows machine at GitHub. How it looks on real desktops is only partly checked — see [What has been verified](#what-has-been-verified).
 
 ## How the real wheel drives the pet
 
@@ -74,6 +74,16 @@ A scripted 60-second loop for trying the animations while the real hamster rests
 - Links open only Squeek Pulse, the SqueekChain docs and the Sepolia explorer (`eth-sepolia.blockscout.com`), enforced by the app's capability file.
 - API values reach the screen only as text, never as HTML.
 
+## Windows
+
+1. Open the [latest release](https://github.com/zakehowell/squeek-pet/releases/latest) and download the file ending in `-setup.exe` (the `.msi` works too). For 64-bit Windows 10 and 11.
+2. Run it. The installers are not code-signed, so the first time Windows SmartScreen says "Windows protected your PC": click **More info**, then **Run anyway**.
+3. The hamster appears above the taskbar in the bottom-right corner. Its menu is the Squeek Pet icon in the notification area (click `^` if Windows hides it there). Uninstall it from Settings → Apps.
+
+The installers are built by [GitHub Actions](.github/workflows/release.yml) from the source in this repository, at the commit the release points to; nobody builds them by hand. To check a download, compare it with `SHA256SUMS.txt` in the release, or run `gh attestation verify <file> --repo zakehowell/squeek-pet`.
+
+If Windows 11's Smart App Control is on, it blocks unsigned apps outright and offers no "Run anyway", so the installer won't run there.
+
 ## Install from source
 
 You build the app on your own computer. An app you build yourself is not quarantined, so macOS opens it without the "unidentified developer" warning.
@@ -84,7 +94,7 @@ You build the app on your own computer. An app you build yourself is not quarant
 - [Rust](https://www.rust-lang.org/tools/install) (stable), via rustup.
 - macOS: Xcode Command Line Tools, `xcode-select --install`.
 - Linux: the WebKitGTK packages listed in the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/).
-- Windows: not built or tested yet. The [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) (Microsoft C++ Build Tools, WebView2) should be enough, but expect problems.
+- Windows: the Microsoft C++ Build Tools with "Desktop development with C++", and WebView2 (already part of Windows 11 and of up-to-date Windows 10), as in the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/). Most people should use the [installer](#windows) instead.
 
 **2. Download and build**
 
@@ -101,6 +111,7 @@ The first build downloads and compiles the Rust crates, so allow a few minutes. 
 
 - macOS: `src-tauri/target/release/bundle/macos/Squeek Pet.app`. Drag it into Applications. A `.dmg` is in `src-tauri/target/release/bundle/dmg/`.
 - Linux: the packages are in `src-tauri/target/release/bundle/` (`deb`, `rpm`, `appimage`).
+- Windows: the installers are in `src-tauri\target\release\bundle\nsis\` and `msi\`.
 
 The pet appears in the bottom-right corner of the screen. Quit it from the tray or menu-bar icon.
 
@@ -119,19 +130,20 @@ npm run desktop        # the real desktop pet, in development mode
 
 ![All poses](docs/screenshots/poses.png)
 
-There are no signed installers. If you copy an app you built to someone else's computer, macOS blocks it the first time (on macOS 15 and later, System Settings → Privacy & Security → Open Anyway; on earlier versions, right-click → Open) and Windows SmartScreen may warn. Building from source on each computer avoids this.
+Nothing is code-signed. The Windows installers trigger SmartScreen the first time, as described [above](#windows). If you copy a Mac app you built to someone else's computer, macOS blocks it the first time (on macOS 15 and later, System Settings → Privacy & Security → Open Anyway; on earlier versions, right-click → Open). Building from source on each computer avoids this.
 
 ## What has been verified
 
 | Check | Result |
 | --- | --- |
-| Unit tests (Vitest) | 79 passing: API parsing and validation, Retry-After, backoff, state machine transitions, bean ledger (epochs, resets, caps), offline and clock-skew rules, demo loop, bubble and panel texts in both languages, settings and the pet size layout, the parts of the hamster drawing that the animation needs, and the head turning to profile while running. |
+| Unit tests (Vitest) | 81 passing: API parsing and validation, Retry-After, backoff, state machine transitions, bean ledger (epochs, resets, caps), offline and clock-skew rules, demo loop, bubble and panel texts in both languages, settings and the pet size layout, the parts of the hamster drawing that the animation needs, the head turning to profile while running, and the Wake and Feed reactions, which leave the data untouched. |
 | Type checks | `tsc` strict, app and tests. |
 | Live API | Pet page read the real `/v1/status` on 2026-10-31 (wheel idle, work 62,576, settled block #5,570) and showed it correctly in both languages. |
 | Animations | Every state captured frame by frame through the demo loop. |
 | Desktop build on Linux | `cargo build` and `clippy` clean; the app launched on a virtual X display, placed itself bottom-right and showed the sleeping pet on live data (Linux WebKit, the same engine family as macOS). |
 | Desktop build on macOS | On an Apple Silicon Mac (macOS 26.6): the unit tests and type checks passed, `npm run desktop` compiled in about a minute and launched with no errors, and on 2026-11-01 a release build produced the `.app` (4.1 MiB) and `.dmg` (2.9 MiB) in 79 seconds. The same day a fresh clone of this repository went through `npm ci`, the tests, the type checks and an app-only build in 89 seconds. |
-| **Not verified yet** | On macOS, what the pet looks like on screen: transparency over the desktop, click-through, drag and the menu bar icon. Windows builds. Multi-monitor and mixed DPI. Autostart. |
+| Desktop build on Windows | On 2026-11-02 GitHub Actions built this repository on Windows Server 2025 (build 26100, the same build as Windows 11 24H2): the 81 unit tests passed, and a 4 min 34 s release build produced the `-setup.exe` (1.3 MiB) and the `.msi` (1.9 MiB). The `-setup.exe` installed silently, the pet started and was still running 30 seconds later, and a screenshot showed the sleeping hamster above the taskbar in the bottom-right corner, with the desktop visible through its transparent window. This check runs again for every change. |
+| **Not verified yet** | On macOS, what the pet looks like on screen: transparency over the desktop, click-through, drag and the menu bar icon. On Windows, anything done by hand: click-through, drag, the menus and tray icon, bubbles and the details panel, SmartScreen on a real PC, installing from the `.msi`, and Windows 10. Multi-monitor and mixed DPI. Autostart. |
 
 ## Project layout
 

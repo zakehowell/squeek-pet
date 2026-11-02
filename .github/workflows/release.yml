@@ -1,0 +1,84 @@
+# Pushing a tag such as v0.1.0 builds the Windows installers from that commit,
+# records where they were built (GitHub artifact attestations), and opens a
+# draft GitHub release with them. A person publishes the draft.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Build the Windows installers and draft a release
+    runs-on: windows-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check the tag matches the app version
+        shell: pwsh
+        run: |
+          $version = (Get-Content src-tauri\tauri.conf.json -Raw | ConvertFrom-Json).version
+          if ($env:TAG -ne "v$version") { throw "tag $env:TAG does not match version $version in src-tauri/tauri.conf.json" }
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+          rustc --version
+
+      - run: npm ci
+      - run: npm test
+
+      - name: Build the app and both installers
+        run: npm run desktop:build
+
+      - name: Install with the setup program and start the pet
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem src-tauri\target\release\bundle\nsis\*-setup.exe | Select-Object -First 1
+          Start-Process -FilePath $setup.FullName -ArgumentList "/S" -Wait
+          $dirs = @("$env:LOCALAPPDATA\Squeek Pet", "$env:LOCALAPPDATA\Programs\Squeek Pet", "$env:ProgramFiles\Squeek Pet")
+          $exe = Get-ChildItem $dirs -Filter *.exe -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch "^uninstall" } | Select-Object -First 1
+          if (-not $exe) { throw "the setup program did not install Squeek Pet in any of: $($dirs -join ', ')" }
+          $pet = Start-Process -FilePath $exe.FullName -PassThru
+          Start-Sleep -Seconds 20
+          if ($pet.HasExited) { throw "Squeek Pet quit on its own (exit code $($pet.ExitCode))" }
+          Stop-Process -Id $pet.Id
+
+      - name: Write SHA256SUMS.txt
+        shell: pwsh
+        run: |
+          # GitHub turns spaces in release file names into dots, so the list uses those names.
+          $files = Get-ChildItem src-tauri\target\release\bundle\msi\*.msi, src-tauri\target\release\bundle\nsis\*-setup.exe
+          if ($files.Count -ne 2) { throw "expected one .msi and one -setup.exe, found $($files.Count)" }
+          $files | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower(), ($_.Name -replace ' ', '.') } | Set-Content -Encoding ascii SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*-setup.exe
+
+      - name: Draft the GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $files = Get-ChildItem src-tauri\target\release\bundle\msi\*.msi, src-tauri\target\release\bundle\nsis\*-setup.exe
+          gh release create $env:TAG $files.FullName SHA256SUMS.txt --draft --verify-tag --title "Squeek Pet $env:TAG" --notes-file .github/release-notes.md
