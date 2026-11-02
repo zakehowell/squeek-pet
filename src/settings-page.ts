@@ -6,7 +6,7 @@ import { desktop } from "./platform/desktop";
 
 // The settings window. Changes are saved and broadcast to the pet at once.
 
-const VERSION = "0.1.0";
+const VERSION = "0.1.1";
 let settings = loadSettings();
 let autostart: boolean | null = null;
 const app = document.getElementById("settings")!;
