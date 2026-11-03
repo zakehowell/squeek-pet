@@ -48,7 +48,7 @@ jobs:
           if ($files.Count -ne 2) { throw "expected one .msi and one -setup.exe, found $($files.Count)" }
           $files | ForEach-Object { "{0}  {1:N1} MB  {2}" -f (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower(), ($_.Length / 1MB), $_.Name }
 
-      - name: Install with the setup program, start the pet, take a screenshot
+      - name: Install with the setup program, start the pet, open settings, take screenshots
         shell: pwsh
         run: |
           $setup = Get-ChildItem src-tauri\target\release\bundle\nsis\*-setup.exe | Select-Object -First 1
@@ -57,18 +57,34 @@ jobs:
           $exe = Get-ChildItem $dirs -Filter *.exe -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch "^uninstall" } | Select-Object -First 1
           if (-not $exe) { throw "the setup program did not install Squeek Pet in any of: $($dirs -join ', ')" }
           "Installed: $($exe.FullName)"
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          function Save-Screenshot($name) {
+            $screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
+            $shot = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
+            $g = [System.Drawing.Graphics]::FromImage($shot)
+            $g.CopyFromScreen($screen.Left, $screen.Top, 0, 0, $shot.Size)
+            $shot.Save("$PWD\$name", [System.Drawing.Imaging.ImageFormat]::Png)
+            $g.Dispose(); $shot.Dispose()
+            "Saved $name ($($screen.Width)x$($screen.Height))"
+          }
+          # Opens WebView2's DevTools port so the settings check can drive the pet
+          # page. The runner is elevated, and WebView2 ignores the
+          # WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS variable and per-user policies
+          # for elevated apps, so this uses the machine-wide policy.
+          $policy = "HKLM:\SOFTWARE\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments"
+          New-Item -Path $policy -Force | Out-Null
+          New-ItemProperty -Path $policy -Name $exe.Name -Value "--remote-debugging-port=9222" -PropertyType String -Force | Out-Null
           $pet = Start-Process -FilePath $exe.FullName -PassThru
           Start-Sleep -Seconds 30
-          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-          $screen = [System.Windows.Forms.SystemInformation]::VirtualScreen
-          $shot = New-Object System.Drawing.Bitmap $screen.Width, $screen.Height
-          $g = [System.Drawing.Graphics]::FromImage($shot)
-          $g.CopyFromScreen($screen.Left, $screen.Top, 0, 0, $shot.Size)
-          $shot.Save("$PWD\windows-desktop.png", [System.Drawing.Imaging.ImageFormat]::Png)
-          $g.Dispose(); $shot.Dispose()
-          "Screen: $($screen.Width)x$($screen.Height)"
+          Save-Screenshot "windows-desktop.png"
           if ($pet.HasExited) { throw "Squeek Pet quit on its own (exit code $($pet.ExitCode))" }
-          Stop-Process -Id $pet.Id
+          node .github/scripts/check-settings-window.mjs
+          $settingsOk = $LASTEXITCODE -eq 0
+          Start-Sleep -Seconds 2
+          Save-Screenshot "windows-settings.png"
+          Stop-Process -Id $pet.Id -ErrorAction SilentlyContinue
+          Remove-ItemProperty -Path $policy -Name $exe.Name
+          if (-not $settingsOk) { throw "the settings window check failed; see windows-settings.png" }
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -83,6 +99,8 @@ jobs:
         if: always()
         with:
           name: windows-desktop-screenshot
-          path: windows-desktop.png
+          path: |
+            windows-desktop.png
+            windows-settings.png
           if-no-files-found: ignore
           retention-days: 14
