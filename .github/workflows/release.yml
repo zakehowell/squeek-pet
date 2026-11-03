@@ -47,7 +47,7 @@ jobs:
       - name: Build the app and both installers
         run: npm run desktop:build
 
-      - name: Install with the setup program and start the pet
+      - name: Install with the setup program, start the pet and open settings
         shell: pwsh
         run: |
           $setup = Get-ChildItem src-tauri\target\release\bundle\nsis\*-setup.exe | Select-Object -First 1
@@ -55,10 +55,19 @@ jobs:
           $dirs = @("$env:LOCALAPPDATA\Squeek Pet", "$env:LOCALAPPDATA\Programs\Squeek Pet", "$env:ProgramFiles\Squeek Pet")
           $exe = Get-ChildItem $dirs -Filter *.exe -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch "^uninstall" } | Select-Object -First 1
           if (-not $exe) { throw "the setup program did not install Squeek Pet in any of: $($dirs -join ', ')" }
+          # DevTools port for the settings check. The runner is elevated, so only
+          # the machine-wide WebView2 policy is honoured (see windows.yml).
+          $policy = "HKLM:\SOFTWARE\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments"
+          New-Item -Path $policy -Force | Out-Null
+          New-ItemProperty -Path $policy -Name $exe.Name -Value "--remote-debugging-port=9222" -PropertyType String -Force | Out-Null
           $pet = Start-Process -FilePath $exe.FullName -PassThru
           Start-Sleep -Seconds 20
           if ($pet.HasExited) { throw "Squeek Pet quit on its own (exit code $($pet.ExitCode))" }
-          Stop-Process -Id $pet.Id
+          node .github/scripts/check-settings-window.mjs
+          $settingsOk = $LASTEXITCODE -eq 0
+          Stop-Process -Id $pet.Id -ErrorAction SilentlyContinue
+          Remove-ItemProperty -Path $policy -Name $exe.Name
+          if (-not $settingsOk) { throw "the settings window check failed" }
 
       - name: Write SHA256SUMS.txt
         shell: pwsh

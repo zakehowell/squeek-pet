@@ -216,6 +216,8 @@ fn bottom_right_origin(
     )
 }
 
+/// Call on the main thread only: `restore_state` holds the window-state
+/// plugin's lock while it waits for the main thread.
 fn restore_window_geometry(window: &WebviewWindow) -> tauri::Result<()> {
     let saved = window
         .app_handle()
@@ -353,8 +355,11 @@ fn resize_pet(
     result.map_err(|e| e.to_string())
 }
 
+/// Async on purpose: Tauri runs synchronous commands on the main thread, and
+/// on Windows WebView2 can't create a webview from there. The new window then
+/// stays blank white and the whole app hangs (tauri-apps/wry#583).
 #[tauri::command]
-fn open_settings(app: AppHandle) -> Result<(), String> {
+async fn open_settings(app: AppHandle) -> Result<(), String> {
     show_settings(&app).map_err(|e| e.to_string())
 }
 
@@ -386,7 +391,14 @@ fn toggle_pet(app: &AppHandle) {
     set_pet_visible(app, !PET_VISIBLE.load(Ordering::Relaxed));
 }
 
+/// Shows the settings window, creating it if needed. Never call this on the
+/// main thread (commands without `async`, menu and window event handlers):
+/// see `open_settings`. `restore_window_geometry` on the other hand must run
+/// on the main thread once the window exists; see below.
 fn show_settings(app: &AppHandle) -> tauri::Result<()> {
+    // Two quick requests must not both try to create the window.
+    static OPENING: Mutex<()> = Mutex::new(());
+    let _opening = OPENING.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(window) = app.get_webview_window(SETTINGS) {
         window.unminimize()?;
         window.show()?;
@@ -398,8 +410,17 @@ fn show_settings(app: &AppHandle) -> tauri::Result<()> {
         .min_inner_size(360.0, 480.0)
         .center()
         .build()?;
-    restore_window_geometry(&window)?;
-    window.set_focus()
+    // Restore on the main thread. The window-state plugin keeps its cache
+    // locked while restore_state waits for the main thread to move the window,
+    // and the main thread locks the same cache when it announces a new window.
+    // Restoring from this thread deadlocked the whole app on Windows.
+    let restored = window.clone();
+    window.run_on_main_thread(move || {
+        if let Err(error) = restore_window_geometry(&restored) {
+            eprintln!("[squeek-pet] could not restore the settings window: {error}");
+        }
+        let _ = restored.set_focus();
+    })
 }
 
 /// Creates the pet window in the bottom-right corner of the primary screen.
@@ -493,8 +514,14 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
             "demo" => {
                 let _ = app.emit_to(PET, "pet://menu", "demo");
             }
+            // Menu handlers run on the main thread; see show_settings.
             "settings" => {
-                let _ = show_settings(app);
+                let app = app.clone();
+                std::thread::spawn(move || {
+                    if let Err(error) = show_settings(&app) {
+                        eprintln!("[squeek-pet] could not open settings: {error}");
+                    }
+                });
             }
             "quit" => app.exit(0),
             _ => {}
