@@ -12,7 +12,7 @@ Normally there is only a small hamster in the corner of the screen. Hover it for
 
 ![Demo loop: sleeping, waking, running, eating, settled block, offline](docs/screenshots/demo-loop.png)
 
-> Status: **MVP, version 0.1.1.** On Windows, [download the installer](#windows). On macOS and Linux, [build it from source](#install-from-source), which takes a few minutes. Built and launched on Linux, on an Apple Silicon Mac and on a Windows machine at GitHub. How it looks on real desktops is only partly checked — see [What has been verified](#what-has-been-verified).
+> Status: **MVP, version 0.1.2.** On Windows, [download the installer](#windows). On macOS and Linux, [build it from source](#install-from-source), which takes a few minutes. Built and launched on Linux, on an Apple Silicon Mac and on a Windows machine at GitHub. How it looks on real desktops is only partly checked — see [What has been verified](#what-has-been-verified).
 
 ## How the real wheel drives the pet
 
