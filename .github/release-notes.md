@@ -1,3 +1,7 @@
+## What's new in 0.1.2
+
+- **Settings opens on Windows.** In 0.1.0 and 0.1.1, opening Settings from the pet's right-click menu or its details card showed a blank white window and froze the pet. Fixed.
+
 ## What's new in 0.1.1
 
 - **Live on X.** While Squeektoshi is really running, hover the hamster and a "Live on X" button appears beside the wheel. Click it to watch [@squeekchain](https://x.com/squeekchain)'s live stream. For now it opens the @squeekchain profile, one click away from the current stream.
@@ -13,6 +17,10 @@ Download the **`-setup.exe`** file below (or the `.msi`) and run it. For 64-bit 
 - Read-only: it reads the public `GET https://api.squeekchain.com/v1/status`, and Squeek Chain's public live-stream descriptor while the "Live on X" button shows. No wallet, no keys, no signatures.
 
 macOS and Linux: build it from source, see the [README](https://github.com/zakehowell/squeek-pet#install-from-source).
+
+## 0.1.2 修复
+
+- **Windows 上的设置窗口能打开了。** 在 0.1.0 和 0.1.1 里，从右键菜单或详情卡片打开设置，只会出现一个白色窗口，整个桌宠也会卡住。已修复。
 
 ## 0.1.1 新功能
 
