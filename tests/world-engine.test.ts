@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { BEANS_PER_WORK, CHEST_TIERS, DEW_PER_REST, PLANTS, ROUTES } from "../src/world/data";
-import { applyChoice, check, chestTier, clockOf, newWorld, replay } from "../src/world/engine";
+import { BEANS_PER_WORK, CHEST_TIERS, DEW_PER_REST, ITEMS, MAX_GEAR, PLANTS, REST_GROWTH, ROUTES, WELL_REST_BONUS } from "../src/world/data";
+import { applyChoice, check, chestTier, clockOf, craftCost, gearSlots, newWorld, replay } from "../src/world/engine";
 import { seasonEnd, seasonOf, stanceFor } from "../src/world/season";
 import { prune, worldOf, type SaveFile } from "../src/world/store";
 import { simTurns } from "../src/world/sim";
@@ -62,7 +62,7 @@ describe("world engine", () => {
     expect(world.res.beans).toBe(before.res.beans);
     expect(world.res.dew).toBe(144 * DEW_PER_REST);
     // Carrots grow at night too, and the 144 resting rounds merge into a few diary entries.
-    expect(world.plots[0].growth).toBe(PLANTS.carrot.need);
+    expect(world.plots[0].growth).toBe(Math.min(PLANTS.carrot.need, 144 * REST_GROWTH));
     expect(world.diary.filter((d) => d.kind === "rest").length).toBe(8);
   });
 
@@ -74,14 +74,14 @@ describe("world engine", () => {
     expect(world.news.at(-1)?.lines.some((l) => l.k === "d.garden.ripe")).toBe(true);
     expect(check(world, { t: "harvest", plot: 0 })).toBeNull();
     applyChoice(world, { t: "harvest", plot: 0 });
-    expect(world.res.carrot).toBe(3);
+    expect(world.res.carrot).toBe(PLANTS.carrot.yields.carrot);
     expect(world.seeds.carrot).toBe(2);
     expect(world.plots[0].plant).toBeNull();
   });
 
   it("walks an expedition with settled work and pays its treasure once", () => {
     const route = ROUTES.mossy;
-    const entries: Turn[] = Array.from({ length: 12 }, (_, i) => turn(101 + i, 400));
+    const entries: Turn[] = Array.from({ length: 12 }, (_, i) => turn(101 + i, 800));
     const choices = [choice(100, { t: "expedition", route: "mossy", gear: [], snack: false, charm: false })];
     const world = replay(base(), entries, choices);
     expect(world.routesDone.mossy).toBe(1);
@@ -93,7 +93,7 @@ describe("world engine", () => {
   });
 
   it("takes the path picked at the fork", () => {
-    const entries: Turn[] = Array.from({ length: 6 }, (_, i) => turn(101 + i, 300));
+    const entries: Turn[] = Array.from({ length: 6 }, (_, i) => turn(101 + i, 600));
     const choices = [
       choice(100, { t: "expedition", route: "mossy", gear: [], snack: false, charm: false }),
       choice(100, { t: "fork", path: "risky" }),
@@ -115,7 +115,7 @@ describe("world engine", () => {
 
   it("fights the shared boss with the planned action and opens the season chest once", () => {
     const season = seasonOf(T);
-    const entries: Turn[] = Array.from({ length: 6 }, (_, i) => turn(101 + i, 1000));
+    const entries: Turn[] = Array.from({ length: 6 }, (_, i) => turn(101 + i, 5000));
     // A turn in the next season ends this one.
     entries.push(turn(107, 0, { at: seasonEnd(season) + 3600_000 }));
     const choices = [
@@ -143,10 +143,42 @@ describe("world engine", () => {
   });
 
   it("upgrades the chest one tier when the shared boss was defeated", () => {
-    expect(chestTier(999, true)).toBeNull();
-    expect(chestTier(1000, false)?.id).toBe("bronze");
-    expect(chestTier(1000, true)?.id).toBe("silver");
+    expect(chestTier(CHEST_TIERS[0].min - 1, true)).toBeNull();
+    expect(chestTier(CHEST_TIERS[0].min, false)?.id).toBe("bronze");
+    expect(chestTier(CHEST_TIERS[0].min, true)?.id).toBe("silver");
     expect(chestTier(1_000_000, true)?.id).toBe(CHEST_TIERS.at(-1)!.id);
+  });
+
+  it("keeps every building at or below the cottage's level", () => {
+    const world = base();
+    world.res = { ...world.res, beans: 100_000, wood: 1000, stone: 1000, crystal: 100 };
+    expect(applyChoice(world, { t: "build", building: "lantern" })).toBeNull();
+    expect(check(world, { t: "build", building: "lantern" })).toBe("err.cottage");
+    expect(applyChoice(world, { t: "build", building: "cottage" })).toBeNull();
+    expect(applyChoice(world, { t: "build", building: "lantern" })).toBeNull();
+    expect(world.buildings).toMatchObject({ cottage: 2, lantern: 2 });
+    expect(applyChoice(world, { t: "build", building: "cottage" })).toBeNull();
+    expect(applyChoice(world, { t: "build", building: "lantern" })).toBeNull();
+    expect(check(world, { t: "build", building: "lantern" })).toBe("err.maxLevel");
+    expect(check(world, { t: "build", building: "cottage" })).toBe("err.maxLevel");
+  });
+
+  it("makes each building level count", () => {
+    const world = base();
+    world.buildings = { cottage: 3, silo: 2, lantern: 3, well: 2, workshop: 3 };
+    world.plots[0] = { ...world.plots[0], plant: "carrot", growth: 0 };
+    const after = replay(world, [turn(101, 1000), turn(102, 0)], []);
+    // 100 beans from 1,000 work, +10% for cottage level 3 and +20% for silo level 2.
+    expect(after.res.beans - world.res.beans).toBe(100 + 10 + 20);
+    // Lantern level 3: 2 + 3 dew in the resting round.
+    expect(after.res.dew - world.res.dew).toBe(DEW_PER_REST + 3);
+    // Well level 2: the resting round grows the carrot 15 + 2 × 5.
+    expect(after.plots[0].growth).toBe(1000 + REST_GROWTH + 2 * WELL_REST_BONUS);
+    // Workshop level 3: gear for 75% of the price, rounded up, and one more gear slot.
+    expect(craftCost(after, "lamp")).toEqual({ beans: 38, wood: 8, stone: 4, crystal: 1 });
+    expect(craftCost(after, "snack")).toEqual(ITEMS.snack.cost);
+    expect(gearSlots(after)).toBe(MAX_GEAR + 1);
+    expect(gearSlots(base())).toBe(MAX_GEAR);
   });
 
   it("only lets the player join this season's or next season's guild", () => {

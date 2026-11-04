@@ -16,9 +16,11 @@ import type {
   StanceId,
 } from "./types";
 
-// The rules of the world as data. Numbers are tuned to the real hamster:
-// about 10,000 work units a day, mostly in 20 to 30 busy ten-minute rounds at
-// night (Beijing daytime), and about 120 resting rounds.
+// The rules of the world as data, matching the Squeek Pet World whitepaper.
+// Numbers are tuned to the real hamster: about 10,000 settled work units a
+// day (7 days to 2026-11-04: 70,657), in about 24 busy ten-minute rounds, and
+// about 119 resting rounds. Building everything to level 3 and unlocking every
+// area costs 40,500 data beans, plus 180 for a full set of gear: 4 to 6 weeks.
 
 export interface Name {
   en: string;
@@ -71,28 +73,28 @@ export const AREAS: readonly AreaSpec[] = [
     id: "forest",
     name: n("Forest Edge", "林边"),
     blurb: n("Shady beds for blueberries, the bean silo and the workshop.", "阴凉的菜地适合种蓝莓，还能盖豆仓和工坊。"),
-    cost: { beans: 250, wood: 15 },
+    cost: { beans: 300, wood: 20 },
     plots: 2,
   },
   {
     id: "lake",
     name: n("Lakeside", "湖畔"),
     blurb: n("Water lilies that only grow in dreams, and a little pier.", "只在梦里生长的睡莲，还有一座小码头。"),
-    cost: { beans: 500, wood: 25, stone: 20 },
+    cost: { beans: 800, wood: 40, stone: 30 },
     plots: 2,
   },
   {
     id: "hills",
     name: n("Windy Hills", "风铃山丘"),
     blurb: n("A windmill that spins with the real wheel.", "风车会跟着真实跑轮一起转。"),
-    cost: { beans: 900, stone: 40, crystal: 3 },
+    cost: { beans: 1600, stone: 60, crystal: 4 },
     plots: 2,
   },
   {
     id: "ruins",
     name: n("Starlight Ruins", "星光遗迹"),
     blurb: n("Moonflowers and an observatory that reads the boss's moods.", "月光花，以及能看穿 Boss 心情的观星台。"),
-    cost: { beans: 1500, dew: 60, crystal: 8 },
+    cost: { beans: 3000, dew: 120, crystal: 10 },
     plots: 2,
   },
 ];
@@ -124,29 +126,29 @@ export const PLANTS: Record<PlantId, PlantSpec> = {
   carrot: {
     id: "carrot",
     name: n("Carrot", "胡萝卜"),
-    need: 700,
+    need: 3000,
     grows: "both",
     area: null,
     seedFrom: "packet",
-    yields: { carrot: 3 },
+    yields: { carrot: 4 },
     seedBack: 1,
     blurb: n("Grows by day and by night. Carrots pack expedition snacks.", "白天黑夜都长。胡萝卜能做探险零食。"),
   },
   sunflower: {
     id: "sunflower",
     name: n("Sunflower", "向日葵"),
-    need: 1200,
+    need: 5000,
     grows: "work",
     area: null,
     seedFrom: "sunseed",
-    yields: { sunseed: 4, beans: 30 },
+    yields: { sunseed: 5, beans: 60 },
     seedBack: 0,
     blurb: n("Only grows while the real hamster runs. Plant it from sunflower seeds.", "只在真仓鼠跑步时生长，用葵花籽种。"),
   },
   clover: {
     id: "clover",
     name: n("Lucky clover", "幸运草"),
-    need: 1000,
+    need: 6000,
     grows: "both",
     area: null,
     seedFrom: "packet",
@@ -157,33 +159,33 @@ export const PLANTS: Record<PlantId, PlantSpec> = {
   blueberry: {
     id: "blueberry",
     name: n("Blueberry bush", "蓝莓丛"),
-    need: 2000,
+    need: 9000,
     grows: "both",
     area: "forest",
     seedFrom: "packet",
-    yields: { berry: 3 },
+    yields: { berry: 4 },
     seedBack: 1,
     blurb: n("Forest Edge only. Herbalists brew support from berries.", "只能种在林边。药师用蓝莓支援公会。"),
   },
   lily: {
     id: "lily",
     name: n("Water lily", "睡莲"),
-    need: 1500,
+    need: 1800,
     grows: "rest",
     area: "lake",
     seedFrom: "packet",
-    yields: { crystal: 1, dew: 10 },
+    yields: { crystal: 1, dew: 15 },
     seedBack: 1,
     blurb: n("Lakeside only. Grows only while the hamster rests.", "只能种在湖畔，只在仓鼠休息时生长。"),
   },
   moonflower: {
     id: "moonflower",
     name: n("Moonflower", "月光花"),
-    need: 2400,
+    need: 3600,
     grows: "rest",
     area: "ruins",
     seedFrom: "packet",
-    yields: { crystal: 2, dew: 30 },
+    yields: { crystal: 2, dew: 40 },
     seedBack: 1,
     blurb: n("Starlight Ruins only. Opens on long nights.", "只能种在星光遗迹，在漫长的夜里开放。"),
   },
@@ -205,57 +207,57 @@ export const BUILDINGS: Record<BuildingId, BuildingSpec> = {
     id: "cottage",
     name: n("Hamster cottage", "仓鼠小屋"),
     area: "meadow",
-    levels: [{}, { beans: 200, wood: 20, stone: 10 }, { beans: 600, wood: 40, stone: 30, crystal: 2 }],
-    effect: n("+5% beans for each level above 1.", "每升一级，数据豆 +5%。"),
+    levels: [{}, { beans: 400, wood: 30, stone: 20 }, { beans: 1200, wood: 60, stone: 40, crystal: 3 }],
+    effect: n("+5% beans for each level above 1. Other buildings can't be higher than the cottage.", "2 级起每级数据豆 +5%；其他建筑的等级不能超过小屋。"),
   },
   lantern: {
     id: "lantern",
     name: n("Lantern path", "灯笼小路"),
     area: "meadow",
-    levels: [{ beans: 120, wood: 10 }],
-    effect: n("+1 dream dew every resting round.", "每个休息回合梦露 +1。"),
+    levels: [{ beans: 150, wood: 10 }, { beans: 450, wood: 20, crystal: 1 }, { beans: 1200, wood: 40, crystal: 3 }],
+    effect: n("+1 dream dew every resting round for each level.", "每级让每个休息回合的梦露 +1。"),
   },
   well: {
     id: "well",
     name: n("Wishing well", "许愿井"),
     area: "meadow",
-    levels: [{ beans: 150, stone: 25 }],
-    effect: n("Every plant grows a little more on resting rounds.", "休息回合里所有植物多长一点。"),
+    levels: [{ beans: 200, stone: 25 }, { beans: 600, stone: 50 }, { beans: 1500, stone: 80, crystal: 2 }],
+    effect: n("+5 growth on every resting round for each level.", "每级让休息回合的作物生长 +5。"),
   },
   silo: {
     id: "silo",
     name: n("Bean silo", "豆仓"),
     area: "forest",
-    levels: [{ beans: 300, wood: 30 }],
-    effect: n("+10% data beans.", "数据豆 +10%。"),
+    levels: [{ beans: 400, wood: 30 }, { beans: 1000, wood: 60 }, { beans: 2500, wood: 100, crystal: 3 }],
+    effect: n("+10% data beans for each level.", "每级数据豆 +10%。"),
   },
   workshop: {
     id: "workshop",
     name: n("Workshop", "工坊"),
     area: "forest",
-    levels: [{ beans: 250, wood: 20, stone: 20 }],
-    effect: n("Craft the lamp, rope, map and trowel.", "可以制作提灯、绳索、地图和小铲子。"),
+    levels: [{ beans: 300, wood: 20, stone: 20 }, { beans: 900, wood: 40, stone: 40 }, { beans: 2000, wood: 60, stone: 60, crystal: 2 }],
+    effect: n("Level 1 crafts gear, level 2 crafts it for 25% less, level 3 adds a gear slot.", "1 级能做装备，2 级做装备少花 25%，3 级多 1 个装备栏。"),
   },
   pier: {
     id: "pier",
     name: n("Little pier", "小码头"),
     area: "lake",
-    levels: [{ beans: 400, wood: 40 }],
-    effect: n("Sometimes fishes a star crystal out of the lake at night.", "夜里有时能从湖里钓起星晶。"),
+    levels: [{ beans: 500, wood: 40 }, { beans: 1200, wood: 80 }, { beans: 2800, wood: 120, crystal: 2 }],
+    effect: n("Each resting round has a 1% chance per level to fish up a star crystal.", "每个休息回合，每级有 1% 的机会钓到星晶。"),
   },
   windmill: {
     id: "windmill",
     name: n("Windmill", "风车"),
     area: "hills",
-    levels: [{ beans: 600, wood: 40, stone: 40 }],
-    effect: n("Spins with the real wheel. +10% growth from work.", "跟着真实跑轮转动。运动带来的生长 +10%。"),
+    levels: [{ beans: 800, wood: 40, stone: 40 }, { beans: 2000, wood: 60, stone: 80 }, { beans: 4500, wood: 80, stone: 120, crystal: 4 }],
+    effect: n("Spins with the real wheel. +10% growth from work for each level.", "跟着真实跑轮转动，每级让跑步带来的生长 +10%。"),
   },
   observatory: {
     id: "observatory",
     name: n("Observatory", "观星台"),
     area: "ruins",
-    levels: [{ beans: 1000, stone: 30, crystal: 8 }],
-    effect: n("Shows the boss's mood odds. +10% guild contribution.", "显示 Boss 的心情概率，公会贡献 +10%。"),
+    levels: [{ beans: 1200, stone: 30, crystal: 8 }, { beans: 3000, stone: 60, crystal: 12 }, { beans: 6000, stone: 100, crystal: 16 }],
+    effect: n("Shows the boss's mood odds. +10% guild contribution for each level.", "显示 Boss 的心情概率，每级公会贡献 +10%。"),
   },
 };
 
@@ -277,18 +279,18 @@ export const ITEMS: Record<ItemId, ItemSpec> = {
   lamp: {
     id: "lamp",
     name: n("Lamp", "提灯"),
-    cost: { wood: 10, stone: 5, crystal: 1 },
+    cost: { beans: 50, wood: 10, stone: 5, crystal: 1 },
     workshop: true,
     consumable: false,
-    effect: n("Lights dark caves and halls.", "照亮黑暗的山洞和大厅。"),
+    effect: n("Lights dark caves and halls, and finds 1 more star crystal there.", "照亮黑暗的山洞和大厅，还能多找到 1 颗星晶。"),
   },
   rope: {
     id: "rope",
     name: n("Rope", "绳索"),
-    cost: { wood: 15 },
+    cost: { beans: 30, wood: 15 },
     workshop: true,
     consumable: false,
-    effect: n("Crosses fallen logs and cliffs.", "翻过倒下的树干和悬崖。"),
+    effect: n("Crosses fallen logs and cliffs, and finds 3 more wood there.", "翻过倒下的树干和悬崖，还能多找到 3 根木材。"),
   },
   map: {
     id: "map",
@@ -301,7 +303,7 @@ export const ITEMS: Record<ItemId, ItemSpec> = {
   trowel: {
     id: "trowel",
     name: n("Trowel", "小铲子"),
-    cost: { stone: 10, wood: 5 },
+    cost: { beans: 40, stone: 10, wood: 5 },
     workshop: true,
     consumable: false,
     effect: n("Digs up one more of every find.", "每次发现多挖出一份。"),
@@ -327,6 +329,8 @@ export const ITEMS: Record<ItemId, ItemSpec> = {
 export const GEAR: readonly GearId[] = ["lamp", "rope", "map", "trowel"];
 export const CONSUMABLES: readonly ConsumableId[] = ["snack", "charm"];
 export const MAX_GEAR = 2;
+/** Workshop level 2 crafts gear for this percent of its price; level 3 adds a gear slot. */
+export const WORKSHOP_DISCOUNT = 75;
 
 export type Hazard = "dark" | "cliff";
 
@@ -354,7 +358,7 @@ export const ROUTES: Record<RouteId, RouteSpec> = {
     id: "mossy",
     name: n("Mossy Trail", "苔藓小径"),
     area: "meadow",
-    length: 1500,
+    length: 3000,
     trail: ["wood", "stone"],
     events: [
       { weight: 3, event: { kind: "find", res: "wood", min: 3, max: 6 } },
@@ -363,7 +367,7 @@ export const ROUTES: Record<RouteId, RouteSpec> = {
       { weight: 2, event: { kind: "seed", plant: "carrot", count: 1 } },
       { weight: 1, event: { kind: "hazard", hazard: "cliff", place: "log" } },
     ],
-    reward: { wood: 12, stone: 8, beans: 60, sunseed: 2 },
+    reward: { wood: 20, stone: 15, beans: 80, sunseed: 2 },
     rewardSeeds: { carrot: 1 },
     blurb: n("A short walk behind the cottage. Wood and pebbles.", "小屋后面的短途小路，盛产木材和石子。"),
   },
@@ -371,7 +375,7 @@ export const ROUTES: Record<RouteId, RouteSpec> = {
     id: "woods",
     name: n("Whispering Woods", "低语森林"),
     area: "forest",
-    length: 3000,
+    length: 6000,
     trail: ["wood", "wood", "stone"],
     events: [
       { weight: 3, event: { kind: "find", res: "wood", min: 5, max: 9 } },
@@ -381,7 +385,7 @@ export const ROUTES: Record<RouteId, RouteSpec> = {
       { weight: 2, event: { kind: "hazard", hazard: "cliff", place: "log" } },
       { weight: 1, event: { kind: "hazard", hazard: "dark", place: "hollow" } },
     ],
-    reward: { wood: 20, stone: 10, beans: 120, crystal: 1 },
+    reward: { wood: 30, stone: 15, beans: 160, crystal: 1 },
     rewardSeeds: { blueberry: 2 },
     blurb: n("Old trees, an owl who trades seeds, fireflies at night.", "古老的树林，卖种子的猫头鹰，夜里的萤火虫。"),
   },
@@ -389,7 +393,7 @@ export const ROUTES: Record<RouteId, RouteSpec> = {
     id: "mirror",
     name: n("Mirror Lake", "镜湖"),
     area: "lake",
-    length: 4000,
+    length: 9000,
     trail: ["stone", "dew"],
     events: [
       { weight: 3, event: { kind: "find", res: "stone", min: 4, max: 8 } },
@@ -399,7 +403,7 @@ export const ROUTES: Record<RouteId, RouteSpec> = {
       { weight: 1, event: { kind: "npc", npc: "crow" } },
       { weight: 2, event: { kind: "hazard", hazard: "dark", place: "fog" } },
     ],
-    reward: { stone: 16, dew: 30, beans: 160, crystal: 1 },
+    reward: { stone: 25, dew: 40, beans: 240, crystal: 1 },
     rewardSeeds: { lily: 2 },
     blurb: n("Still water, a riddling frog and foggy shores.", "平静的湖水，爱出谜语的青蛙，起雾的湖岸。"),
   },
@@ -407,7 +411,7 @@ export const ROUTES: Record<RouteId, RouteSpec> = {
     id: "chime",
     name: n("Windchime Hills", "风铃山"),
     area: "hills",
-    length: 5500,
+    length: 12000,
     trail: ["stone", "stone", "wood"],
     events: [
       { weight: 3, event: { kind: "find", res: "stone", min: 6, max: 10 } },
@@ -417,7 +421,7 @@ export const ROUTES: Record<RouteId, RouteSpec> = {
       { weight: 1, event: { kind: "find", res: "crystal", min: 1, max: 1 } },
       { weight: 1, event: { kind: "seed", plant: "clover", count: 1 } },
     ],
-    reward: { stone: 30, wood: 10, beans: 220, crystal: 2 },
+    reward: { stone: 50, wood: 20, beans: 320, crystal: 2 },
     rewardSeeds: { clover: 1 },
     blurb: n("Windy ridges, cliffs, and a mole who knows the caves.", "大风山脊、悬崖，以及熟悉山洞的鼹鼠。"),
   },
@@ -425,7 +429,7 @@ export const ROUTES: Record<RouteId, RouteSpec> = {
     id: "starfall",
     name: n("Starfall Ruins", "星落遗迹"),
     area: "ruins",
-    length: 8000,
+    length: 18000,
     trail: ["stone", "dew"],
     events: [
       { weight: 2, event: { kind: "find", res: "crystal", min: 1, max: 2 } },
@@ -435,7 +439,7 @@ export const ROUTES: Record<RouteId, RouteSpec> = {
       { weight: 2, event: { kind: "seed", plant: "moonflower", count: 1 } },
       { weight: 1, event: { kind: "hazard", hazard: "cliff", place: "stair" } },
     ],
-    reward: { crystal: 4, dew: 40, beans: 320 },
+    reward: { crystal: 5, dew: 60, beans: 480 },
     rewardSeeds: { moonflower: 2 },
     blurb: n("Fallen stars, dark halls and the rarest seeds.", "坠落的星星、黑暗的大厅和最稀有的种子。"),
   },
@@ -596,14 +600,14 @@ export interface ChestTier {
 }
 
 export const CHEST_TIERS: readonly ChestTier[] = [
-  { id: "bronze", name: n("Bronze chest", "铜宝箱"), min: 1_000, reward: { beans: 150, wood: 5, stone: 5 }, seeds: {} },
-  { id: "silver", name: n("Silver chest", "银宝箱"), min: 5_000, reward: { beans: 400, wood: 15, stone: 15, crystal: 1 }, seeds: { clover: 1 } },
-  { id: "gold", name: n("Gold chest", "金宝箱"), min: 15_000, reward: { beans: 900, wood: 30, stone: 30, crystal: 3 }, seeds: { blueberry: 1 } },
+  { id: "bronze", name: n("Bronze chest", "铜宝箱"), min: 15_000, reward: { beans: 300, wood: 10, stone: 10 }, seeds: {} },
+  { id: "silver", name: n("Silver chest", "银宝箱"), min: 40_000, reward: { beans: 800, wood: 20, stone: 20, crystal: 1 }, seeds: { clover: 1 } },
+  { id: "gold", name: n("Gold chest", "金宝箱"), min: 80_000, reward: { beans: 1800, wood: 40, stone: 40, crystal: 3 }, seeds: { blueberry: 1 } },
   {
     id: "rainbow",
     name: n("Rainbow chest", "彩虹宝箱"),
-    min: 30_000,
-    reward: { beans: 1600, wood: 50, stone: 50, crystal: 6 },
+    min: 120_000,
+    reward: { beans: 3200, wood: 60, stone: 60, crystal: 6 },
     seeds: { moonflower: 1, lily: 1 },
   },
 ];

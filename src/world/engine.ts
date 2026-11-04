@@ -22,6 +22,7 @@ import {
   START_RESOURCES,
   START_SEEDS,
   WELL_REST_BONUS,
+  WORKSHOP_DISCOUNT,
   emptyResources,
   nodeSteps,
   type ChestTier,
@@ -39,6 +40,7 @@ import type {
   Gap,
   GearId,
   GuildId,
+  ItemId,
   LedgerEntry,
   Line,
   NpcId,
@@ -54,9 +56,6 @@ import type {
 // give the same world. Rewards come only from settled turns, once each.
 
 export const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
-
-const NUMBER_OF_DREAM_PLACES = 10;
-const NUMBER_OF_DREAM_THINGS = 12;
 
 function plotsFor(area: AreaId): Plot[] {
   const spec = AREAS.find((a) => a.id === area)!;
@@ -149,6 +148,22 @@ export function areaCost(world: WorldState, area: AreaId): Cost {
   return priceOf(world, AREAS.find((a) => a.id === area)!.cost, true);
 }
 
+/** What making an item costs now: gear is 25% cheaper with a level 2 workshop. */
+export function craftCost(world: WorldState, item: ItemId): Cost {
+  const spec = ITEMS[item];
+  if (!spec.workshop || (world.buildings.workshop ?? 0) < 2) return spec.cost;
+  const cost: Cost = {};
+  for (const key of Object.keys(spec.cost) as ResourceId[]) cost[key] = Math.ceil(((spec.cost[key] ?? 0) * WORKSHOP_DISCOUNT) / 100);
+  return cost;
+}
+
+/** How much gear an expedition can carry: one more piece with a level 3 workshop. */
+export const gearSlots = (world: WorldState) => MAX_GEAR + ((world.buildings.workshop ?? 0) >= 3 ? 1 : 0);
+
+/** No building can be a higher level than the cottage. */
+export const cottageAllows = (world: WorldState, id: BuildingId) =>
+  id === "cottage" || (world.buildings[id] ?? 0) + 1 <= (world.buildings.cottage ?? 1);
+
 export function chestTier(contribution: number, bossDefeated: boolean): ChestTier | null {
   let index = -1;
   CHEST_TIERS.forEach((tier, i) => {
@@ -187,6 +202,7 @@ export function check(world: WorldState, choice: Choice): string | null {
       if (!world.areas.includes(spec.area)) return "err.locked";
       const cost = nextLevelCost(world, choice.building);
       if (!cost) return "err.maxLevel";
+      if (!cottageAllows(world, choice.building)) return "err.cottage";
       return affordable(world, cost) ? null : "err.cost";
     }
     case "unlock": {
@@ -202,14 +218,14 @@ export function check(world: WorldState, choice: Choice): string | null {
       if (spec.workshop && !world.buildings.workshop) return "err.workshop";
       if (!spec.consumable && world.items[choice.item] > 0) return "err.owned";
       if (spec.consumable && world.items[choice.item] >= 9) return "err.full";
-      return affordable(world, spec.cost) ? null : "err.cost";
+      return affordable(world, craftCost(world, choice.item)) ? null : "err.cost";
     }
     case "expedition": {
       if (world.expedition) return "err.onTrail";
       const route = ROUTES[choice.route];
       if (!route) return "err.unknown";
       if (!world.areas.includes(route.area)) return "err.locked";
-      if (choice.gear.length > MAX_GEAR || new Set(choice.gear).size !== choice.gear.length) return "err.gear";
+      if (choice.gear.length > gearSlots(world) || new Set(choice.gear).size !== choice.gear.length) return "err.gear";
       if (choice.gear.some((g) => !GEAR.includes(g) || world.items[g] < 1)) return "err.gear";
       if (choice.snack && world.items.snack < 1) return "err.gear";
       if (choice.charm && world.items.charm < 1) return "err.gear";
@@ -302,7 +318,7 @@ export function applyChoice(world: WorldState, choice: Choice): string | null {
       note(world, `unlock.${choice.area}`, [{ k: "d.event.unlock", v: { area: choice.area } }]);
       break;
     case "craft":
-      pay(world, ITEMS[choice.item].cost);
+      pay(world, craftCost(world, choice.item));
       world.items[choice.item] += 1;
       break;
     case "expedition":
@@ -373,15 +389,15 @@ const percent = (value: number, pct: number) => Math.floor((value * pct) / 100);
 
 function growPlants(world: WorldState, turn: Turn, rest: number, lines: Line[], news: Line[]) {
   const grown: PlantId[] = [];
-  const windmill = world.buildings.windmill ? 10 : 0;
+  const windmill = (world.buildings.windmill ?? 0) * 10;
+  const well = (world.buildings.well ?? 0) * WELL_REST_BONUS;
   const guild = hasPerk(world, "seed", turn.at) ? 10 : 0;
   world.plots.forEach((plot, index) => {
     if (!plot.plant) return;
     const spec = PLANTS[plot.plant];
     if (plot.growth >= spec.need) return;
     let fromWork = spec.grows === "rest" ? 0 : turn.work;
-    let fromRest = spec.grows === "work" ? 0 : rest * REST_GROWTH;
-    if (world.buildings.well) fromRest += rest * WELL_REST_BONUS;
+    let fromRest = spec.grows === "work" ? 0 : rest * (REST_GROWTH + well);
     fromWork += percent(fromWork, windmill + guild);
     fromRest += percent(fromRest, guild);
     const growth = fromWork + fromRest;
@@ -597,7 +613,7 @@ function fight(world: WorldState, turn: Turn, rest: number, lines: Line[]) {
         pct = percent(pct, cls.bonus);
       }
     }
-    if (world.buildings.observatory) pct += percent(pct, 10);
+    pct += percent(pct, (world.buildings.observatory ?? 0) * 10);
     gained = percent(turn.work, pct);
     guild.hits += 1;
     lines.push({
@@ -624,18 +640,6 @@ function fight(world: WorldState, turn: Turn, rest: number, lines: Line[]) {
     if (turn.work <= 0) lines.push({ k: "d.guild.watch", v: { n: watch, boss: bossOf(season).id } });
   }
   guild.contribution[season] = (guild.contribution[season] ?? 0) + gained;
-}
-
-function dreamLine(seed: string): Line {
-  return {
-    k: "d.dream",
-    v: {
-      p: variant(`${seed}:place`, NUMBER_OF_DREAM_PLACES),
-      t: variant(`${seed}:thing`, NUMBER_OF_DREAM_THINGS),
-      t2: (variant(`${seed}:thing`, NUMBER_OF_DREAM_THINGS) + 1 + variant(`${seed}:thing2`, NUMBER_OF_DREAM_THINGS - 1)) % NUMBER_OF_DREAM_THINGS,
-      _: variant(`${seed}:dream`, 3),
-    },
-  };
 }
 
 function applyGap(world: WorldState, gap: Gap) {
@@ -676,15 +680,17 @@ export function applyTurn(world: WorldState, entry: LedgerEntry) {
   const total = world.dust + turn.work;
   let beans = Math.floor(total / BEANS_PER_WORK);
   world.dust = total % BEANS_PER_WORK;
-  beans += percent(beans, ((world.buildings.cottage ?? 1) - 1) * 5 + (world.buildings.silo ? 10 : 0));
+  beans += percent(beans, ((world.buildings.cottage ?? 1) - 1) * 5 + (world.buildings.silo ?? 0) * 10);
   world.res.beans += beans;
-  const dewPerRound = DEW_PER_REST + (world.buildings.lantern ? 1 : 0) + (hasPerk(world, "star", turn.at) ? 1 : 0);
+  const dewPerRound = DEW_PER_REST + (world.buildings.lantern ?? 0) + (hasPerk(world, "star", turn.at) ? 1 : 0);
   const dew = rest * dewPerRound;
   world.res.dew += dew;
 
   const lines: Line[] = [];
   const news: Line[] = [];
-  if (rest > 0 && world.buildings.pier && rng(`${turn.seed}:pier`).chance(Math.min(60, 6 * rest))) {
+  // The pier: a 1% chance per resting round for each level, at most one crystal a turn.
+  const pier = world.buildings.pier ?? 0;
+  if (rest > 0 && pier > 0 && rng(`${turn.seed}:pier`).chance(Math.min(100, pier * rest))) {
     world.res.crystal += 1;
     const line = { k: "d.pier", v: { n: 1 } };
     lines.push(line);
@@ -730,7 +736,7 @@ export function applyTurn(world: WorldState, entry: LedgerEntry) {
         blocks: 0,
         seed: turn.seed,
         tx: turn.tx,
-        lines: [{ k: "d.head.rest", v: { rounds, dew, from: turn.from, to: turn.to } }, dreamLine(turn.seed), ...lines],
+        lines: [{ k: "d.head.rest", v: { rounds, dew, from: turn.from, to: turn.to } }, ...lines],
         sim: turn.sim,
       });
     }
