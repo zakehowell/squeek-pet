@@ -1,0 +1,401 @@
+{
+ "schemaVersion": 3,
+ "installationId": "stream-game-sepolia-test-20261025-01",
+ "status": "available",
+ "generatedAt": "2026-11-04T11:31:16.286Z",
+ "catalogVersion": "public-activity-v4",
+ "chain": {
+  "target": "sepolia",
+  "chainId": "11155111",
+  "confirmations": "12",
+  "deploymentBlock": "11998937",
+  "economyDeploymentBlock": "11998950",
+  "indexedThroughBlock": "12062136",
+  "safeThroughBlock": "12062125",
+  "safeBlockHash": "0x526323690856d1e627a8d73798f42772fded2908696161a7702443c838e87050",
+  "safeBlockTimestamp": "2026-11-04T11:29:00.000Z"
+ },
+ "release": {
+  "id": "stream-game-sepolia-test-20261026-01",
+  "protocolRevision": "stream-game-1",
+  "rewardModelRevision": "funded-stream-q128-1"
+ },
+ "identities": {
+  "core": "0x980b4424c007caf7a1f3670b48c8eaef7ebc3d44",
+  "tokenFactory": "0x779a302adbaa9c8a3da45ef48ad67e6a45fcef29",
+  "token": "0x5501e1fa81be1c3f49225fa7668da0245d07db60",
+  "genesis": "0xcb98349c134ab983da5bfd80527dfe2552bdb70f",
+  "mining": {
+   "proxy": "0xcd46990f8349057335289ef282c276204b6cdc62",
+   "implementation": "0x62d25dc1a24033a80edcc4b2d2ffe9348290cc4c",
+   "implementationVersion": "9",
+   "storageLayoutDigest": "0x136850fc0e19543752b7382cde164f10588dc3b4648e7d704f2f06394ead8b90"
+  },
+  "staking": {
+   "proxy": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+   "implementation": "0xbbb816616d8840bd98094bf5a20f208df089230b",
+   "implementationVersion": "2",
+   "storageLayoutDigest": "0x39f298bf725abe5173d3a3b8ded2d4776d4c53fc9923f0027170dd458210a6f8"
+  },
+  "launch": "0x1ff6485abfbb2d183cd673d78e1ab31c098e04dd"
+ },
+ "nextCursor": "eyJ2ZXJzaW9uIjoxLCJraW5kIjoicHVibGljLWFjdGl2aXR5IiwiY2F0ZWdvcnkiOiJwbGF5ZXJzIiwic2FmZVRocm91Z2hCbG9jayI6IjEyMDYyMTI1IiwiYmxvY2tOdW1iZXIiOiIxMjA0NTA2NiIsInRyYW5zYWN0aW9uSW5kZXgiOiIxMDQiLCJsb2dJbmRleCI6IjI2MiJ9",
+ "category": "players",
+ "activeEventTypes": [
+  "system.settlement_completed",
+  "system.mining_checkpointed",
+  "account.rewards_claimed",
+  "account.claim_recipient_set",
+  "account.rewards_staked",
+  "account.sqk_staked",
+  "account.sqk_unstaked",
+  "nft.deposited",
+  "nft.withdrawn",
+  "nft.merged",
+  "nft.launch_claimed"
+ ],
+ "events": [
+  {
+   "id": "chain:11155111:0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f:0x448e94dc1b275ceeef63b6e8d97d111bc6d0e8651c35aef440148621e168aa2a:113:account.claim_recipient_set",
+   "eventVersion": 1,
+   "occurredAt": "2026-11-04T11:26:24.000Z",
+   "recordedAt": "2026-11-04T11:26:24.000Z",
+   "source": {
+    "kind": "chain",
+    "chainId": "11155111",
+    "target": "sepolia",
+    "releaseId": "stream-game-sepolia-test-20261026-01",
+    "contractAddress": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+    "blockNumber": "12062112",
+    "blockHash": "0xc4dbf5c3cfb06f67ae7311e9863f641da755caeb2041e6206203b7034e06b9d2",
+    "transactionHash": "0x448e94dc1b275ceeef63b6e8d97d111bc6d0e8651c35aef440148621e168aa2a",
+    "transactionIndex": "73",
+    "logIndex": "113",
+    "confirmationStatus": "safe"
+   },
+   "type": "account.claim_recipient_set",
+   "payload": {
+    "account": "0x0000000000000000000000000000000000000000",
+    "recipient": "0x0000000000000000000000000000000000000000"
+   }
+  },
+  {
+   "id": "chain:11155111:0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f:0xa1acbf6110b079283c17ffe4fab3fad4a7671c6122a5b4abf998276e6b3803a1:9:account.rewards_claimed",
+   "eventVersion": 1,
+   "occurredAt": "2026-11-04T10:16:36.000Z",
+   "recordedAt": "2026-11-04T10:16:36.000Z",
+   "source": {
+    "kind": "chain",
+    "chainId": "11155111",
+    "target": "sepolia",
+    "releaseId": "stream-game-sepolia-test-20261026-01",
+    "contractAddress": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+    "blockNumber": "12061766",
+    "blockHash": "0x002e4cf4e3826bac0d6fca212bd346cca81ebed0a59918ca9daab654f2a334d7",
+    "transactionHash": "0xa1acbf6110b079283c17ffe4fab3fad4a7671c6122a5b4abf998276e6b3803a1",
+    "transactionIndex": "7",
+    "logIndex": "9",
+    "confirmationStatus": "safe"
+   },
+   "type": "account.rewards_claimed",
+   "payload": {
+    "account": "0x0000000000000000000000000000000000000000",
+    "recipient": "0x0000000000000000000000000000000000000000",
+    "amountBaseUnits": "6642616254926438794706",
+    "asset": {
+     "address": "0x5501e1fa81be1c3f49225fa7668da0245d07db60",
+     "symbol": "SQK",
+     "decimals": 18
+    }
+   }
+  },
+  {
+   "id": "chain:11155111:0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f:0xd27fadf4baeba9e6294ccbf5d938ebe9dd25d1a30a961054850dea2dd203cf29:13:account.claim_recipient_set",
+   "eventVersion": 1,
+   "occurredAt": "2026-11-04T09:13:00.000Z",
+   "recordedAt": "2026-11-04T09:13:00.000Z",
+   "source": {
+    "kind": "chain",
+    "chainId": "11155111",
+    "target": "sepolia",
+    "releaseId": "stream-game-sepolia-test-20261026-01",
+    "contractAddress": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+    "blockNumber": "12061450",
+    "blockHash": "0x33a2eb81c2de26b31329e614cb4d190196663f4d596235f9f4a7c31741217d48",
+    "transactionHash": "0xd27fadf4baeba9e6294ccbf5d938ebe9dd25d1a30a961054850dea2dd203cf29",
+    "transactionIndex": "10",
+    "logIndex": "13",
+    "confirmationStatus": "safe"
+   },
+   "type": "account.claim_recipient_set",
+   "payload": {
+    "account": "0x0000000000000000000000000000000000000000",
+    "recipient": "0x0000000000000000000000000000000000000000"
+   }
+  },
+  {
+   "id": "chain:11155111:0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f:0x93e57394c895f5567feb0093e69501f712c45d42a522335e11c9eb098c78d749:151:account.claim_recipient_set",
+   "eventVersion": 1,
+   "occurredAt": "2026-11-04T08:44:48.000Z",
+   "recordedAt": "2026-11-04T08:44:48.000Z",
+   "source": {
+    "kind": "chain",
+    "chainId": "11155111",
+    "target": "sepolia",
+    "releaseId": "stream-game-sepolia-test-20261026-01",
+    "contractAddress": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+    "blockNumber": "12061309",
+    "blockHash": "0xdf5d4a41e182514d5d6a9c3efb23630d6b5d89d04eac432bff72ad3ab67a1e1a",
+    "transactionHash": "0x93e57394c895f5567feb0093e69501f712c45d42a522335e11c9eb098c78d749",
+    "transactionIndex": "71",
+    "logIndex": "151",
+    "confirmationStatus": "safe"
+   },
+   "type": "account.claim_recipient_set",
+   "payload": {
+    "account": "0x0000000000000000000000000000000000000000",
+    "recipient": "0x0000000000000000000000000000000000000000"
+   }
+  },
+  {
+   "id": "chain:11155111:0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f:0xb25a569eafbc7a12383dfb5d6085fb5fd24ffbb1dc83fd483e8ea07e82cfe514:1352:account.rewards_claimed",
+   "eventVersion": 1,
+   "occurredAt": "2026-11-04T06:20:36.000Z",
+   "recordedAt": "2026-11-04T06:20:36.000Z",
+   "source": {
+    "kind": "chain",
+    "chainId": "11155111",
+    "target": "sepolia",
+    "releaseId": "stream-game-sepolia-test-20261026-01",
+    "contractAddress": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+    "blockNumber": "12060593",
+    "blockHash": "0x43a35ca38352c9a44f4cdf38d0edef59d15429cb2e8840e4fd836c168821deca",
+    "transactionHash": "0xb25a569eafbc7a12383dfb5d6085fb5fd24ffbb1dc83fd483e8ea07e82cfe514",
+    "transactionIndex": "1298",
+    "logIndex": "1352",
+    "confirmationStatus": "safe"
+   },
+   "type": "account.rewards_claimed",
+   "payload": {
+    "account": "0x0000000000000000000000000000000000000000",
+    "recipient": "0x0000000000000000000000000000000000000000",
+    "amountBaseUnits": "40825205285109059710",
+    "asset": {
+     "address": "0x5501e1fa81be1c3f49225fa7668da0245d07db60",
+     "symbol": "SQK",
+     "decimals": 18
+    }
+   }
+  },
+  {
+   "id": "chain:11155111:0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f:0x9b50ac4643b549789a7faf06086f9443ada7080008ad08b71203302d72b3c136:124:account.rewards_claimed",
+   "eventVersion": 1,
+   "occurredAt": "2026-11-04T06:09:36.000Z",
+   "recordedAt": "2026-11-04T06:09:36.000Z",
+   "source": {
+    "kind": "chain",
+    "chainId": "11155111",
+    "target": "sepolia",
+    "releaseId": "stream-game-sepolia-test-20261026-01",
+    "contractAddress": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+    "blockNumber": "12060539",
+    "blockHash": "0xe77589c8c16bb0c2d72289f86fbb87c4f1373728bb196192ffb5ade2922ffd12",
+    "transactionHash": "0x9b50ac4643b549789a7faf06086f9443ada7080008ad08b71203302d72b3c136",
+    "transactionIndex": "60",
+    "logIndex": "124",
+    "confirmationStatus": "safe"
+   },
+   "type": "account.rewards_claimed",
+   "payload": {
+    "account": "0x0000000000000000000000000000000000000000",
+    "recipient": "0x0000000000000000000000000000000000000000",
+    "amountBaseUnits": "83814184936434227540",
+    "asset": {
+     "address": "0x5501e1fa81be1c3f49225fa7668da0245d07db60",
+     "symbol": "SQK",
+     "decimals": 18
+    }
+   }
+  },
+  {
+   "id": "chain:11155111:0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f:0x6e222fd8cd71c2083b1b9006e073de97432c48c43f7850ce69492bf33c6f9279:105:account.rewards_claimed",
+   "eventVersion": 1,
+   "occurredAt": "2026-11-04T06:03:24.000Z",
+   "recordedAt": "2026-11-04T06:03:24.000Z",
+   "source": {
+    "kind": "chain",
+    "chainId": "11155111",
+    "target": "sepolia",
+    "releaseId": "stream-game-sepolia-test-20261026-01",
+    "contractAddress": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+    "blockNumber": "12060508",
+    "blockHash": "0x839855e64df371239393906f982836572347e7144addb5ec677d09a07a0b3d65",
+    "transactionHash": "0x6e222fd8cd71c2083b1b9006e073de97432c48c43f7850ce69492bf33c6f9279",
+    "transactionIndex": "61",
+    "logIndex": "105",
+    "confirmationStatus": "safe"
+   },
+   "type": "account.rewards_claimed",
+   "payload": {
+    "account": "0x0000000000000000000000000000000000000000",
+    "recipient": "0x0000000000000000000000000000000000000000",
+    "amountBaseUnits": "1190161426097366031069",
+    "asset": {
+     "address": "0x5501e1fa81be1c3f49225fa7668da0245d07db60",
+     "symbol": "SQK",
+     "decimals": 18
+    }
+   }
+  },
+  {
+   "id": "chain:11155111:0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f:0xe1401f19c58b5d3e06193dc08ff97e1775582dae56cac18b2a7d5662f503336a:173:account.rewards_claimed",
+   "eventVersion": 1,
+   "occurredAt": "2026-11-04T05:20:00.000Z",
+   "recordedAt": "2026-11-04T05:20:00.000Z",
+   "source": {
+    "kind": "chain",
+    "chainId": "11155111",
+    "target": "sepolia",
+    "releaseId": "stream-game-sepolia-test-20261026-01",
+    "contractAddress": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+    "blockNumber": "12060292",
+    "blockHash": "0xb31c8297875ef391a489be0a4b846d698f651f7faf349551c9a7aedb3b4099a5",
+    "transactionHash": "0xe1401f19c58b5d3e06193dc08ff97e1775582dae56cac18b2a7d5662f503336a",
+    "transactionIndex": "111",
+    "logIndex": "173",
+    "confirmationStatus": "safe"
+   },
+   "type": "account.rewards_claimed",
+   "payload": {
+    "account": "0x0000000000000000000000000000000000000000",
+    "recipient": "0x0000000000000000000000000000000000000000",
+    "amountBaseUnits": "1081887183108054060",
+    "asset": {
+     "address": "0x5501e1fa81be1c3f49225fa7668da0245d07db60",
+     "symbol": "SQK",
+     "decimals": 18
+    }
+   }
+  },
+  {
+   "id": "chain:11155111:0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f:0xb9069613ae748a38228b4adfd28284742ee4843938f9c9b4d6eda9901ac1f55f:1136:account.rewards_claimed",
+   "eventVersion": 1,
+   "occurredAt": "2026-11-04T04:03:24.000Z",
+   "recordedAt": "2026-11-04T04:03:24.000Z",
+   "source": {
+    "kind": "chain",
+    "chainId": "11155111",
+    "target": "sepolia",
+    "releaseId": "stream-game-sepolia-test-20261026-01",
+    "contractAddress": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+    "blockNumber": "12059913",
+    "blockHash": "0x3d2e69582861c7de6ca654205fe1b45a2e153f0e2440e141f9b9b441eac4cbf7",
+    "transactionHash": "0xb9069613ae748a38228b4adfd28284742ee4843938f9c9b4d6eda9901ac1f55f",
+    "transactionIndex": "1085",
+    "logIndex": "1136",
+    "confirmationStatus": "safe"
+   },
+   "type": "account.rewards_claimed",
+   "payload": {
+    "account": "0x0000000000000000000000000000000000000000",
+    "recipient": "0x0000000000000000000000000000000000000000",
+    "amountBaseUnits": "648802687063283318839",
+    "asset": {
+     "address": "0x5501e1fa81be1c3f49225fa7668da0245d07db60",
+     "symbol": "SQK",
+     "decimals": 18
+    }
+   }
+  },
+  {
+   "id": "chain:11155111:0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f:0xa48873b8038e348f5a25b6fd8efffe512d60dc75f6d909f4f05dcd45d87fd7b8:52:account.rewards_claimed",
+   "eventVersion": 1,
+   "occurredAt": "2026-11-04T03:29:24.000Z",
+   "recordedAt": "2026-11-04T03:29:24.000Z",
+   "source": {
+    "kind": "chain",
+    "chainId": "11155111",
+    "target": "sepolia",
+    "releaseId": "stream-game-sepolia-test-20261026-01",
+    "contractAddress": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+    "blockNumber": "12059746",
+    "blockHash": "0x9b10e80dfb568a0d1ed84f80b6897bd8ae64029574f1cc13db840a524df09d81",
+    "transactionHash": "0xa48873b8038e348f5a25b6fd8efffe512d60dc75f6d909f4f05dcd45d87fd7b8",
+    "transactionIndex": "24",
+    "logIndex": "52",
+    "confirmationStatus": "safe"
+   },
+   "type": "account.rewards_claimed",
+   "payload": {
+    "account": "0x0000000000000000000000000000000000000000",
+    "recipient": "0x0000000000000000000000000000000000000000",
+    "amountBaseUnits": "68565134758713592060",
+    "asset": {
+     "address": "0x5501e1fa81be1c3f49225fa7668da0245d07db60",
+     "symbol": "SQK",
+     "decimals": 18
+    }
+   }
+  },
+  {
+   "id": "chain:11155111:0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f:0xfbe03101f6ec2ef33fe4153a4ba5b1a7f884775dbd2ae818d921cec550bde7b2:119:account.rewards_claimed",
+   "eventVersion": 1,
+   "occurredAt": "2026-11-04T03:28:48.000Z",
+   "recordedAt": "2026-11-04T03:28:48.000Z",
+   "source": {
+    "kind": "chain",
+    "chainId": "11155111",
+    "target": "sepolia",
+    "releaseId": "stream-game-sepolia-test-20261026-01",
+    "contractAddress": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+    "blockNumber": "12059743",
+    "blockHash": "0x7c415cfe9b684589bc9d46a4b1c02633463e965c165ac465f255045e68fa2703",
+    "transactionHash": "0xfbe03101f6ec2ef33fe4153a4ba5b1a7f884775dbd2ae818d921cec550bde7b2",
+    "transactionIndex": "71",
+    "logIndex": "119",
+    "confirmationStatus": "safe"
+   },
+   "type": "account.rewards_claimed",
+   "payload": {
+    "account": "0x0000000000000000000000000000000000000000",
+    "recipient": "0x0000000000000000000000000000000000000000",
+    "amountBaseUnits": "7525466129980088205",
+    "asset": {
+     "address": "0x5501e1fa81be1c3f49225fa7668da0245d07db60",
+     "symbol": "SQK",
+     "decimals": 18
+    }
+   }
+  },
+  {
+   "id": "chain:11155111:0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f:0x78735b6007683b0f2f1f763b164c97c1018871e2b7604d1c2e41f1d91ffa910b:1193:account.rewards_claimed",
+   "eventVersion": 1,
+   "occurredAt": "2026-11-04T03:17:36.000Z",
+   "recordedAt": "2026-11-04T03:17:36.000Z",
+   "source": {
+    "kind": "chain",
+    "chainId": "11155111",
+    "target": "sepolia",
+    "releaseId": "stream-game-sepolia-test-20261026-01",
+    "contractAddress": "0x4b67b739dfd832f4eac67a7aa3bc244fb74cea4f",
+    "blockNumber": "12059688",
+    "blockHash": "0xe51f79b17cbf7d969ef6bef4fc3c29e154e9961fc47ab04fab603b7dfe9ae8f3",
+    "transactionHash": "0x78735b6007683b0f2f1f763b164c97c1018871e2b7604d1c2e41f1d91ffa910b",
+    "transactionIndex": "1143",
+    "logIndex": "1193",
+    "confirmationStatus": "safe"
+   },
+   "type": "account.rewards_claimed",
+   "payload": {
+    "account": "0x0000000000000000000000000000000000000000",
+    "recipient": "0x0000000000000000000000000000000000000000",
+    "amountBaseUnits": "138721734116246982298",
+    "asset": {
+     "address": "0x5501e1fa81be1c3f49225fa7668da0245d07db60",
+     "symbol": "SQK",
+     "decimals": 18
+    }
+   }
+  }
+ ]
+}
