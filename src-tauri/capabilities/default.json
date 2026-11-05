@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "What the pet and settings windows may do. Links only open Squeek Pulse, the SqueekChain docs, the Sepolia explorer and @squeekchain's live stream on X.",
-  "windows": ["pet", "settings"],
+  "description": "What the pet, settings and Squeek World windows may do. Links only open Squeek Pulse, the SqueekChain docs, the Sepolia explorer and @squeekchain's live stream on X.",
+  "windows": ["pet", "settings", "world"],
   "permissions": [
     "core:default",
     "core:window:allow-start-dragging",

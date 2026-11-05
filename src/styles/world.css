@@ -555,6 +555,7 @@ textarea:focus-visible {
   margin-bottom: 14px;
   border: 1px solid var(--line);
   border-radius: 16px;
+  background: var(--card);
   background: color-mix(in srgb, var(--card) 88%, transparent);
   backdrop-filter: blur(8px);
 }
@@ -952,6 +953,7 @@ textarea:focus-visible {
   gap: 1px;
   padding: 8px 12px;
   border-radius: 12px;
+  background: var(--card);
   background: color-mix(in srgb, var(--card) 88%, transparent);
   backdrop-filter: blur(6px);
 }
@@ -1407,6 +1409,7 @@ li.route.locked .why {
 }
 
 .hp-bar .bar-fill {
+  background: var(--boss, #e46f6f);
   background: linear-gradient(90deg, color-mix(in srgb, var(--boss, #e46f6f) 70%, #fff), var(--boss, #e46f6f));
 }
 
@@ -1462,7 +1465,9 @@ li.route.locked .why {
   gap: 12px;
   padding: 10px 12px;
   border-radius: 14px;
+  background: var(--card-2);
   background: color-mix(in srgb, var(--guild, var(--accent)) 12%, var(--card));
+  border: 1px solid var(--line);
   border: 1px solid color-mix(in srgb, var(--guild, var(--accent)) 35%, transparent);
 }
 
@@ -1514,6 +1519,7 @@ li.route.locked .why {
   padding: 10px;
   border-radius: 14px;
   background: var(--card-2);
+  border: 1px solid var(--line);
   border: 1px solid color-mix(in srgb, var(--guild, var(--accent)) 30%, var(--line));
   text-align: center;
   font-size: 12px;

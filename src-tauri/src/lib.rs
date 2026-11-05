@@ -1,6 +1,7 @@
 // Desktop shell for Squeek Pet: a transparent, always-on-top pet window that
-// lets clicks through everywhere except the pet, a tray menu, and a settings
-// window. All wheel data handling lives in the web front end.
+// lets clicks through everywhere except the pet, a tray menu, a settings
+// window and the Squeek World window. All wheel data handling lives in the web
+// front end.
 
 mod hud_position;
 
@@ -22,6 +23,7 @@ use tauri_plugin_window_state::{StateFlags, WindowExt};
 const PET: &str = "pet";
 const HUD: &str = "hud";
 const SETTINGS: &str = "settings";
+const WORLD: &str = "world";
 /// How often the pointer is checked against the pet's clickable areas.
 const CURSOR_POLL: Duration = Duration::from_millis(33);
 
@@ -73,6 +75,7 @@ struct CursorEvent {
 struct TrayItems {
     toggle: MenuItem<Wry>,
     details: MenuItem<Wry>,
+    world: MenuItem<Wry>,
     demo: CheckMenuItem<Wry>,
     settings: MenuItem<Wry>,
     quit: MenuItem<Wry>,
@@ -83,6 +86,7 @@ struct TrayItems {
 struct TrayLabels {
     toggle: String,
     details: String,
+    world: String,
     demo: String,
     settings: String,
     quit: String,
@@ -319,6 +323,7 @@ fn set_tray_labels(items: tauri::State<'_, TrayItems>, labels: TrayLabels) -> Re
     let result = (|| -> tauri::Result<()> {
         items.toggle.set_text(labels.toggle)?;
         items.details.set_text(labels.details)?;
+        items.world.set_text(labels.world)?;
         items.demo.set_text(labels.demo)?;
         items.demo.set_checked(labels.demo_on)?;
         items.settings.set_text(labels.settings)?;
@@ -360,7 +365,13 @@ fn resize_pet(
 /// stays blank white and the whole app hangs (tauri-apps/wry#583).
 #[tauri::command]
 async fn open_settings(app: AppHandle) -> Result<(), String> {
-    show_settings(&app).map_err(|e| e.to_string())
+    show_window(&app, &SETTINGS_WINDOW).map_err(|e| e.to_string())
+}
+
+/// Async for the same reason as `open_settings`.
+#[tauri::command]
+async fn open_world(app: AppHandle) -> Result<(), String> {
+    show_window(&app, &WORLD_WINDOW).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -391,23 +402,48 @@ fn toggle_pet(app: &AppHandle) {
     set_pet_visible(app, !PET_VISIBLE.load(Ordering::Relaxed));
 }
 
-/// Shows the settings window, creating it if needed. Never call this on the
-/// main thread (commands without `async`, menu and window event handlers):
-/// see `open_settings`. `restore_window_geometry` on the other hand must run
-/// on the main thread once the window exists; see below.
-fn show_settings(app: &AppHandle) -> tauri::Result<()> {
-    // Two quick requests must not both try to create the window.
+/// A decorated app window opened from the menus: settings, or Squeek World.
+struct WindowSpec {
+    label: &'static str,
+    url: &'static str,
+    title: &'static str,
+    size: (f64, f64),
+    min_size: (f64, f64),
+}
+
+const SETTINGS_WINDOW: WindowSpec = WindowSpec {
+    label: SETTINGS,
+    url: "settings.html",
+    title: "Squeek Pet",
+    size: (420.0, 700.0),
+    min_size: (360.0, 480.0),
+};
+
+const WORLD_WINDOW: WindowSpec = WindowSpec {
+    label: WORLD,
+    url: "world.html",
+    title: "Squeek Pet World",
+    size: (1120.0, 800.0),
+    min_size: (380.0, 520.0),
+};
+
+/// Shows a window, creating it if needed. Never call this on the main thread
+/// (commands without `async`, menu and window event handlers): see
+/// `open_settings`. `restore_window_geometry` on the other hand must run on
+/// the main thread once the window exists; see below.
+fn show_window(app: &AppHandle, spec: &WindowSpec) -> tauri::Result<()> {
+    // Two quick requests must not both try to create a window.
     static OPENING: Mutex<()> = Mutex::new(());
     let _opening = OPENING.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some(window) = app.get_webview_window(SETTINGS) {
+    if let Some(window) = app.get_webview_window(spec.label) {
         window.unminimize()?;
         window.show()?;
         return window.set_focus();
     }
-    let window = WebviewWindowBuilder::new(app, SETTINGS, WebviewUrl::App("settings.html".into()))
-        .title("Squeek Pet")
-        .inner_size(420.0, 700.0)
-        .min_inner_size(360.0, 480.0)
+    let window = WebviewWindowBuilder::new(app, spec.label, WebviewUrl::App(spec.url.into()))
+        .title(spec.title)
+        .inner_size(spec.size.0, spec.size.1)
+        .min_inner_size(spec.min_size.0, spec.min_size.1)
         .center()
         .build()?;
     // Restore on the main thread. The window-state plugin keeps its cache
@@ -415,12 +451,23 @@ fn show_settings(app: &AppHandle) -> tauri::Result<()> {
     // and the main thread locks the same cache when it announces a new window.
     // Restoring from this thread deadlocked the whole app on Windows.
     let restored = window.clone();
+    let label = spec.label;
     window.run_on_main_thread(move || {
         if let Err(error) = restore_window_geometry(&restored) {
-            eprintln!("[squeek-pet] could not restore the settings window: {error}");
+            eprintln!("[squeek-pet] could not restore the {label} window: {error}");
         }
         let _ = restored.set_focus();
     })
+}
+
+/// Menu handlers run on the main thread, so windows open from another one.
+fn show_window_soon(app: &AppHandle, spec: &'static WindowSpec) {
+    let app = app.clone();
+    std::thread::spawn(move || {
+        if let Err(error) = show_window(&app, spec) {
+            eprintln!("[squeek-pet] could not open the {} window: {error}", spec.label);
+        }
+    });
 }
 
 /// Creates the pet window in the bottom-right corner of the primary screen.
@@ -484,6 +531,7 @@ fn create_hud(app: &AppHandle) -> tauri::Result<()> {
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let toggle = MenuItem::with_id(app, "toggle", "Show / Hide Squeek Pet", true, None::<&str>)?;
     let details = MenuItem::with_id(app, "details", "Show details", true, None::<&str>)?;
+    let world = MenuItem::with_id(app, "world", "Open Squeek Pet World", true, None::<&str>)?;
     let demo = CheckMenuItem::with_id(app, "demo", "Demo mode", true, false, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit Squeek Pet", true, None::<&str>)?;
@@ -492,6 +540,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
         &[
             &toggle,
             &details,
+            &world,
             &PredefinedMenuItem::separator(app)?,
             &demo,
             &settings,
@@ -514,15 +563,9 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
             "demo" => {
                 let _ = app.emit_to(PET, "pet://menu", "demo");
             }
-            // Menu handlers run on the main thread; see show_settings.
-            "settings" => {
-                let app = app.clone();
-                std::thread::spawn(move || {
-                    if let Err(error) = show_settings(&app) {
-                        eprintln!("[squeek-pet] could not open settings: {error}");
-                    }
-                });
-            }
+            // Menu handlers run on the main thread; see show_window.
+            "world" => show_window_soon(app, &WORLD_WINDOW),
+            "settings" => show_window_soon(app, &SETTINGS_WINDOW),
             "quit" => app.exit(0),
             _ => {}
         });
@@ -547,6 +590,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     app.manage(TrayItems {
         toggle,
         details,
+        world,
         demo,
         settings,
         quit,
@@ -622,6 +666,7 @@ pub fn run() {
                 .with_denylist(&[HUD])
                 .skip_initial_state(PET)
                 .skip_initial_state(SETTINGS)
+                .skip_initial_state(WORLD)
                 .build(),
         )
         .plugin(tauri_plugin_autostart::init(
@@ -641,6 +686,7 @@ pub fn run() {
             hud_action,
             set_pet_always_on_top,
             open_settings,
+            open_world,
             hide_pet,
             quit_app
         ])
@@ -673,7 +719,7 @@ pub fn run() {
         .expect("error while building Squeek Pet");
 
     app.run(|app, event| {
-        // Closing the settings window must not quit the pet.
+        // Closing the settings or World window must not quit the pet.
         if let RunEvent::ExitRequested {
             code: None, api, ..
         } = event

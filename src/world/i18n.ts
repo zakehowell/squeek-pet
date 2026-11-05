@@ -517,6 +517,11 @@ const en = {
   "save.load": "Import",
   "save.close": "Close",
   "open.world": "Open Squeek Pet World",
+  "pet.ripe": "{n} ready to pick",
+  "pet.trail": "On the trail, {pct}%",
+  "pet.chest": "Chest to open",
+  "pet.beans": "{n} data beans",
+  "pet.more": "(+{n} more)",
 };
 
 type UiKey = keyof typeof en;
@@ -707,6 +712,11 @@ const zh: Record<UiKey, string> = {
   "save.load": "导入",
   "save.close": "关闭",
   "open.world": "打开 Squeek Pet World",
+  "pet.ripe": "{n} 株可以收获",
+  "pet.trail": "探险中 {pct}%",
+  "pet.chest": "有宝箱可开",
+  "pet.beans": "{n} 数据豆",
+  "pet.more": "（另有 {n} 条）",
 };
 
 export type { UiKey };
