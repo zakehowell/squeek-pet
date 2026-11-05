@@ -1,13 +1,19 @@
 import type { Gap, LedgerEntry, Turn } from "./types";
 
-// Turns come from the public event feed, GET /v1/events?category=protocol:
-// every SqueekCore BatchSettled becomes one `system.settlement_completed`
-// event once it has 12 confirmations, including batches with no work. The
-// feed is validated strictly; anything malformed is rejected, never guessed.
+// Turns come from the public event feed, GET /v1/events?category=protocol
+// (schemaVersion 4, release core-sepolia-20261103 and later): every SqueekCore
+// BatchSettled becomes one `system.settlement_completed` event (eventVersion 2)
+// once it has 12 confirmations, including batches with no work. The feed is
+// validated strictly; anything malformed is rejected, never guessed.
 
 export const SEPOLIA = "11155111";
 const DECIMAL = /^(0|[1-9][0-9]*)$/;
 const HEX = /^0x[0-9a-fA-F]+$/;
+const ADDRESS = /^0x[0-9a-f]{40}$/;
+
+/** The event feed's wire contract and the settlement payload version this reads. */
+export const EVENTS_SCHEMA = 4;
+export const SETTLEMENT_EVENT_VERSION = 2;
 
 export class FeedError extends Error {
   constructor(message: string) {
@@ -32,17 +38,25 @@ function hex(value: unknown, path: string): string {
   return value.toLowerCase();
 }
 
-/** One feed event as a turn, or null when it is some other kind of event. */
-export function parseSettlement(event: unknown): Turn | null {
+/**
+ * One feed event as a turn, or null when it is some other kind of event.
+ * `release` is the page's release id; a settlement from another release is
+ * rejected, so two deployments' rounds can never mix.
+ */
+export function parseSettlement(event: unknown, release?: string): Turn | null {
   if (!isObject(event)) throw new FeedError("event: expected an object");
   if (event.type !== "system.settlement_completed") return null;
   const id = event.id;
   if (typeof id !== "string" || !id) throw new FeedError("event.id: expected a string");
+  if (event.eventVersion !== SETTLEMENT_EVENT_VERSION) throw new FeedError(`event.eventVersion: unsupported ${String(event.eventVersion)}`);
   const source = event.source;
   const payload = event.payload;
   if (!isObject(source) || !isObject(payload)) throw new FeedError("event: missing source or payload");
   if (source.kind !== "chain" || source.chainId !== SEPOLIA) throw new FeedError("event.source: not a Sepolia chain event");
   if (source.confirmationStatus !== "safe") throw new FeedError("event.source: not yet safe");
+  if (typeof source.contractAddress !== "string" || !ADDRESS.test(source.contractAddress)) throw new FeedError("event.source.contractAddress: expected an address");
+  if (typeof source.releaseId !== "string" || !source.releaseId) throw new FeedError("event.source.releaseId: expected a string");
+  if (release !== undefined && source.releaseId !== release) throw new FeedError("event.source: settlement from another release");
   const previous = num(payload.previousSettledThroughRound, "payload.previousSettledThroughRound");
   const to = num(payload.settledThroughRound, "payload.settledThroughRound");
   if (to <= previous) throw new FeedError("payload: empty round range");
@@ -68,6 +82,8 @@ export function parseSettlement(event: unknown): Turn | null {
 
 export interface EventsPage {
   installationId: string;
+  /** The contract release the page was read from, e.g. core-sepolia-20261103. */
+  release: string;
   turns: Turn[];
   nextCursor: string | null;
   /** The oldest event time on the page, for paging back through the feed. */
@@ -75,19 +91,21 @@ export interface EventsPage {
   events: Json[];
 }
 
-/** Validates an /v1/events response (schemaVersion 3). */
+/** Validates an /v1/events response (schemaVersion 4). */
 export function parseEventsPage(body: unknown): EventsPage {
   if (!isObject(body)) throw new FeedError("response: expected an object");
-  if (body.schemaVersion !== 3) throw new FeedError(`unsupported events schemaVersion ${String(body.schemaVersion)}`);
+  if (body.schemaVersion !== EVENTS_SCHEMA) throw new FeedError(`unsupported events schemaVersion ${String(body.schemaVersion)}`);
   if (body.status !== "available") throw new FeedError(`events unavailable: ${String(body.reason ?? "unknown")}`);
   const chain = body.chain;
   if (!isObject(chain) || chain.chainId !== SEPOLIA) throw new FeedError("events: not the Sepolia deployment");
   if (typeof body.installationId !== "string" || !body.installationId) throw new FeedError("events: missing installationId");
+  const release = isObject(body.release) && typeof body.release.id === "string" && body.release.id ? body.release.id : null;
+  if (!release) throw new FeedError("events: missing release");
   if (!Array.isArray(body.events)) throw new FeedError("events: expected a list");
   const turns: Turn[] = [];
   let oldestAt: number | null = null;
   for (const event of body.events) {
-    const turn = parseSettlement(event);
+    const turn = parseSettlement(event, release);
     if (turn) turns.push(turn);
     if (isObject(event) && typeof event.occurredAt === "string") {
       const at = Date.parse(event.occurredAt);
@@ -97,6 +115,7 @@ export function parseEventsPage(body: unknown): EventsPage {
   const cursor = body.nextCursor;
   return {
     installationId: body.installationId,
+    release,
     turns,
     nextCursor: typeof cursor === "string" && cursor ? cursor : null,
     oldestAt,

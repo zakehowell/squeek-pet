@@ -43,16 +43,22 @@ export function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 }
 
+/** The live protocol feed captured on 2026-11-05: events schema 4, release core-sepolia-20261103. */
+export const PROTOCOL_FIXTURE = "events-protocol-20261105.json";
+/** SqueekCore in release core-sepolia-20261103 (docs.squeekchain.com/assets/deployments/sepolia.json). */
+export const CORE = "0xfd6c166d4b8e2962e65746a13e5a0797cd4de0c4";
+export const RELEASE = "core-sepolia-20261103";
+
 /** An events page with the fixture's envelope and the given events. */
-export function eventsPage(events: unknown[], nextCursor: string | null = null, base = fixture("events-protocol-20261104.json")) {
+export function eventsPage(events: unknown[], nextCursor: string | null = null, base = fixture(PROTOCOL_FIXTURE)) {
   return { ...base, events, nextCursor };
 }
 
-/** A settlement event shaped like the live feed's, for rounds from..to. */
+/** A settlement event shaped like the live feed's (eventVersion 2), for rounds from..to. */
 export function settlementEvent(from: number, to: number, work: number, at: number, hash = "ab") {
   const tx = `0x${hash.repeat(32).slice(0, 64)}${""}`;
   return {
-    id: `chain:11155111:0x980b:${tx}:${to}:system.settlement_completed`,
+    id: `chain:11155111:${CORE}:${tx}:${to}:system.settlement_completed`,
     eventVersion: 2,
     occurredAt: new Date(at).toISOString(),
     recordedAt: new Date(at).toISOString(),
@@ -60,7 +66,9 @@ export function settlementEvent(from: number, to: number, work: number, at: numb
       kind: "chain",
       chainId: "11155111",
       target: "sepolia",
-      blockNumber: String(12_000_000 + to),
+      releaseId: RELEASE,
+      contractAddress: CORE,
+      blockNumber: String(12_100_000 + to),
       blockHash: `0x${(hash + "cd").repeat(16).slice(0, 64)}`,
       transactionHash: tx,
       transactionIndex: "3",
@@ -76,9 +84,9 @@ export function settlementEvent(from: number, to: number, work: number, at: numb
       completedBlockCount: "0",
       firstCompletedBlock: null,
       lastCompletedBlock: null,
-      cumulativeWork: "92730",
-      cumulativeBlockUnits: "8430478838171",
-      blockHeight: "8430",
+      cumulativeWork: "3817",
+      cumulativeBlockUnits: "366425653103",
+      blockHeight: "366",
     },
   };
 }

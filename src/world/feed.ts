@@ -3,8 +3,9 @@ import { FeedError, SEPOLIA, parseEventsPage, type EventsPage } from "./ledger";
 import { digest } from "./rng";
 import type { Turn } from "./types";
 
-// Read-only requests to Squeekchain's public API. Plain GETs without
-// credentials, so browsers send no CORS preflight.
+// Read-only requests to Squeekchain's public API (paths under /v1; the event
+// feed is schemaVersion 4 since release core-sepolia-20261103). Plain GETs
+// without credentials, so browsers send no CORS preflight.
 
 export const API_BASE = "https://api.squeekchain.com";
 
@@ -41,6 +42,7 @@ function eventsPath(category: string, limit: number, cursor: string | null) {
 
 export interface SettlementRead {
   installationId: string;
+  release: string;
   turns: Turn[];
   /** The read reached the round after `after` (or `after` was null). */
   reachedBack: boolean;
@@ -55,11 +57,14 @@ export async function readSettlements(fetchImpl: FetchLike, after: number | null
   const turns: Turn[] = [];
   let cursor: string | null = null;
   let installationId = "";
+  let release = "";
   let reachedBack = after === null;
   for (let page = 0; page < maxPages; page++) {
     const body: EventsPage = parseEventsPage(await getJson(fetchImpl, eventsPath("protocol", page === 0 ? 40 : 100, cursor)));
     if (installationId && body.installationId !== installationId) throw new FeedError("installation changed while paging");
+    if (release && body.release !== release) throw new FeedError("release changed while paging");
     installationId = body.installationId;
+    release = body.release;
     turns.push(...body.turns);
     const oldest = turns.reduce<number | null>((min, t) => (min === null ? t.from : Math.min(min, t.from)), null);
     if (after === null || (oldest !== null && oldest <= after + 1)) {
@@ -73,7 +78,7 @@ export async function readSettlements(fetchImpl: FetchLike, after: number | null
     }
   }
   const newest = turns.reduce<Turn | null>((best, t) => (!best || t.to > best.to ? t : best), null);
-  return { installationId, turns: after === null ? turns : turns.filter((t) => t.to > after), reachedBack, newest };
+  return { installationId, release, turns: after === null ? turns : turns.filter((t) => t.to > after), reachedBack, newest };
 }
 
 // ---- Shared boss data (plan D) --------------------------------------------

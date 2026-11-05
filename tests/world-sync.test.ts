@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { sharedBoss, simulatedBoss } from "../src/world/boss";
-import { BOSSES, COMMUNITY_DAMAGE } from "../src/world/data";
+import { BOSSES, COMMUNITY_DAMAGE, MILESTONE_DAMAGE } from "../src/world/data";
 import { BusyError, readCommunity, readWeek, type FetchLike } from "../src/world/feed";
 import { seasonOf, seasonStart } from "../src/world/season";
 import { addSimDay, addSimTurns, loadSim, resetSim } from "../src/world/sim";
 import { loadSave, worldOf, exportSave, importSave, SAVE_KEYS } from "../src/world/store";
 import { pull, recordChoice } from "../src/world/sync";
-import { eventsPage, fixture, jsonResponse, memoryStorage, settlementEvent } from "./world-helpers";
+import { PROTOCOL_FIXTURE, eventsPage, fixture, jsonResponse, memoryStorage, settlementEvent } from "./world-helpers";
 
-const protocol = fixture("events-protocol-20261104.json");
+const protocol = fixture(PROTOCOL_FIXTURE);
 const NEWEST_AT = Date.parse(protocol.events[0].occurredAt);
 
 /** Serves the captured first page, then `older` for the cursor, plus `extra` newer settlements on top. */
@@ -28,21 +28,21 @@ describe("world sync", () => {
     const storage = memoryStorage();
     const result = await pull({ fetchImpl: feed(), storage, now: NEWEST_AT });
     expect(result.founded).toBe(true);
-    expect(result.save.base.frontier).toBe(1281);
+    expect(result.save.base.frontier).toBe(307);
     expect(result.save.entries).toEqual([]);
-    expect(result.save.installation).toBe("stream-game-sepolia-test-20261025-01");
+    expect(result.save.installation).toBe("sepolia-core-sepolia-20261103");
     expect(loadSave("real", storage)).toEqual(result.save);
   });
 
   it("adds new settlements once and is idempotent", async () => {
     const storage = memoryStorage();
     await pull({ fetchImpl: feed(), storage, now: NEWEST_AT });
-    const next = [settlementEvent(1283, 1283, 800, NEWEST_AT + 1_200_000, "a1"), settlementEvent(1282, 1282, 400, NEWEST_AT + 600_000, "b2")];
+    const next = [settlementEvent(309, 309, 800, NEWEST_AT + 1_200_000, "a1"), settlementEvent(308, 308, 400, NEWEST_AT + 600_000, "b2")];
     const first = await pull({ fetchImpl: feed(next), storage, now: NEWEST_AT + 1_300_000 });
     expect(first.changed).toBe(true);
-    expect(first.added.map((t) => t.to)).toEqual([1282, 1283]);
+    expect(first.added.map((t) => t.to)).toEqual([308, 309]);
     const world = worldOf(first.save);
-    expect(world.frontier).toBe(1283);
+    expect(world.frontier).toBe(309);
     expect(world.res.beans).toBe(100 + 120);
 
     const again = await pull({ fetchImpl: feed(next), storage, now: NEWEST_AT + 1_400_000 });
@@ -54,7 +54,7 @@ describe("world sync", () => {
     const storage = memoryStorage();
     await pull({ fetchImpl: feed(), storage, now: NEWEST_AT });
     recordChoice("real", { t: "plant", plot: 0, plant: "carrot" }, NEWEST_AT, storage);
-    const next = [settlementEvent(1282, 1282, 300, NEWEST_AT + 600_000)];
+    const next = [settlementEvent(308, 308, 300, NEWEST_AT + 600_000)];
     const result = await pull({ fetchImpl: feed(next), storage, now: NEWEST_AT + 700_000 });
     expect(result.save.choices).toHaveLength(1);
     expect(worldOf(result.save).plots[0]).toMatchObject({ plant: "carrot", growth: 300 });
@@ -63,13 +63,13 @@ describe("world sync", () => {
   it("catches up after being closed and marks unreachable rounds as a gap", async () => {
     const storage = memoryStorage();
     const founded = await pull({ fetchImpl: feed(), storage, now: NEWEST_AT });
-    // Pretend the world was founded long ago, at round 1200.
-    storage.setItem(SAVE_KEYS.real, JSON.stringify({ ...founded.save, base: { ...founded.save.base, origin: 1200, frontier: 1200 } }));
+    // Pretend the world was founded long ago, at round 200.
+    storage.setItem(SAVE_KEYS.real, JSON.stringify({ ...founded.save, base: { ...founded.save.base, origin: 200, frontier: 200 } }));
     const result = await pull({ fetchImpl: feed(), storage, now: NEWEST_AT });
     const world = worldOf(result.save);
-    expect(world.frontier).toBe(1281);
+    expect(world.frontier).toBe(307);
     const gap = world.diary.find((d) => d.kind === "gap");
-    expect(gap).toMatchObject({ from: 1201, to: 1268 });
+    expect(gap).toMatchObject({ from: 201, to: 287 });
   });
 
   it("starts a new timeline when Squeekchain moves to a new deployment", async () => {
@@ -100,8 +100,8 @@ describe("world sync", () => {
 
 describe("shared boss", () => {
   it("adds up this season's settled work and real community activity", async () => {
-    const week = fixture("settlements-7d-20261104.json");
-    const players = fixture("events-players-20261104.json");
+    const week = fixture("settlements-7d-20261105.json");
+    const players = fixture("events-players-20261105.json");
     const fetchImpl: FetchLike = async (url) => {
       if (url.includes("/v1/settlements")) return jsonResponse(week);
       if (url.includes("cursor=")) return jsonResponse({ ...players, events: [], nextCursor: null });
@@ -124,6 +124,17 @@ describe("shared boss", () => {
     expect(boss.hamster).toBe(work);
     expect(boss.damage).toBe(work + expectedCommunity);
     expect(boss.left).toBe(Math.max(0, BOSSES[0].hp - work - expectedCommunity));
+  });
+
+  it("reads the hamster's real milestones as critical hits, without addresses", async () => {
+    const measurement = fixture("events-measurement-20261105.json");
+    const fetchImpl: FetchLike = async () => jsonResponse(measurement);
+    const read = await readCommunity(fetchImpl, Date.parse("2026-11-02T12:00:00Z"), "measurement");
+    expect(read.complete).toBe(true);
+    expect(read.events).toHaveLength(measurement.events.length);
+    expect(read.events.every((e) => e.damage === MILESTONE_DAMAGE[e.type])).toBe(true);
+    const record = read.events.find((e) => e.type === "measurement.speed_record");
+    expect(record?.detail).toBeGreaterThan(0);
   });
 
   it("stays unknown, not zero, when the week can't be read", () => {

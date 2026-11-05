@@ -622,7 +622,6 @@ export const COMMUNITY_DAMAGE: Record<string, number> = {
   "nft.deposited": 30,
   "nft.withdrawn": 10,
   "nft.merged": 120,
-  "nft.launch_claimed": 60,
 };
 
 /** Shared critical hits when the real hamster reaches a milestone. */

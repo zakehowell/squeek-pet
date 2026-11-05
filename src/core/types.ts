@@ -28,6 +28,8 @@ export interface Measurement {
 export interface Settlement {
   blockHeight: bigint;
   settledThroughRound: bigint;
+  /** Work units SqueekCore has settled in total; null when the response leaves it out. */
+  cumulativeWork?: bigint | null;
   confirmedAt: number | null;
   transactionHash: string | null;
 }

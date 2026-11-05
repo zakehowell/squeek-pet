@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { InvalidStatusError, UnsupportedSchemaError, isStale, parseStatus } from "../src/core/telemetry";
 import { liveStatusJson } from "./helpers";
@@ -18,9 +19,24 @@ describe("parseStatus", () => {
     expect(snapshot.settlement).toEqual({
       blockHeight: 4135n,
       settledThroughRound: 573n,
+      cumulativeWork: 45957n,
       confirmedAt: Date.parse("2026-10-30T13:20:36.000Z"),
       transactionHash: "0x76229fb58f53e5406cdca3380cf8a300094e433fce0500530fa51e860a9be7b1",
     });
+  });
+
+  it("reads the live response after the move to release core-sepolia-20261103", () => {
+    const body = JSON.parse(readFileSync(new URL("./fixtures/status-idle-20261105.json", import.meta.url), "utf8"));
+    const snapshot = parseStatus(body);
+    expect(snapshot.installationId).toBe("sepolia-core-sepolia-20261103");
+    expect(snapshot.measurement?.cumulativeWorkUnits).toBe(3817n);
+    expect(snapshot.settlement).toMatchObject({ blockHeight: 366n, settledThroughRound: 306n, cumulativeWork: 3817n });
+  });
+
+  it("keeps the settled total unknown when the response leaves it out", () => {
+    const body = liveStatusJson();
+    delete body.builder.anchor.cumulativeWork;
+    expect(parseStatus(body).settlement?.cumulativeWork).toBeNull();
   });
 
   it("converts rpmMilli to RPM", () => {

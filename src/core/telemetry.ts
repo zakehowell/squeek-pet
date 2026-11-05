@@ -89,6 +89,7 @@ function parseSettlement(value: unknown): Settlement | null {
   return {
     blockHeight: decimal(anchor.blockHeight, "builder.anchor.blockHeight"),
     settledThroughRound: decimal(anchor.settledThroughRound, "builder.anchor.settledThroughRound"),
+    cumulativeWork: anchor.cumulativeWork === undefined ? null : decimal(anchor.cumulativeWork, "builder.anchor.cumulativeWork"),
     confirmedAt: anchor.confirmedAt == null ? null : timestamp(anchor.confirmedAt, "builder.anchor.confirmedAt"),
     transactionHash: typeof anchor.transactionHash === "string" ? anchor.transactionHash : null,
   };
