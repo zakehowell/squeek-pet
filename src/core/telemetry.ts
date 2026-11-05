@@ -81,6 +81,16 @@ function parseMeasurement(value: unknown): Measurement | null {
   };
 }
 
+/** builder.queued is informational: read when well formed, otherwise unknown, never a reason to reject. */
+function queuedWork(value: unknown): bigint | null {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+  const queued = value as Json;
+  const closed = queued.closedWorkUnits;
+  const open = queued.openRoundWorkUnits;
+  if (typeof closed !== "string" || typeof open !== "string" || !DECIMAL.test(closed) || !DECIMAL.test(open)) return null;
+  return BigInt(closed) + BigInt(open);
+}
+
 function parseSettlement(value: unknown): Settlement | null {
   if (value === undefined || value === null) return null;
   const builder = object(value, "builder");
@@ -92,6 +102,7 @@ function parseSettlement(value: unknown): Settlement | null {
     cumulativeWork: anchor.cumulativeWork === undefined ? null : decimal(anchor.cumulativeWork, "builder.anchor.cumulativeWork"),
     confirmedAt: anchor.confirmedAt == null ? null : timestamp(anchor.confirmedAt, "builder.anchor.confirmedAt"),
     transactionHash: typeof anchor.transactionHash === "string" ? anchor.transactionHash : null,
+    queuedWork: queuedWork(builder.queued),
   };
 }
 

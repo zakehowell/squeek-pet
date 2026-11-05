@@ -22,6 +22,7 @@ describe("parseStatus", () => {
       cumulativeWork: 45957n,
       confirmedAt: Date.parse("2026-10-30T13:20:36.000Z"),
       transactionHash: "0x76229fb58f53e5406cdca3380cf8a300094e433fce0500530fa51e860a9be7b1",
+      queuedWork: 0n,
     });
   });
 
@@ -30,7 +31,18 @@ describe("parseStatus", () => {
     const snapshot = parseStatus(body);
     expect(snapshot.installationId).toBe("sepolia-core-sepolia-20261103");
     expect(snapshot.measurement?.cumulativeWorkUnits).toBe(3817n);
-    expect(snapshot.settlement).toMatchObject({ blockHeight: 366n, settledThroughRound: 306n, cumulativeWork: 3817n });
+    expect(snapshot.settlement).toMatchObject({ blockHeight: 366n, settledThroughRound: 306n, cumulativeWork: 3817n, queuedWork: 0n });
+  });
+
+  it("adds up the measured work still waiting to be settled", () => {
+    const body = liveStatusJson();
+    body.builder.queued = { closedRoundCount: "2", closedWorkUnits: "1200", openRoundWorkUnits: "345" };
+    expect(parseStatus(body).settlement?.queuedWork).toBe(1545n);
+    // Informational only: a missing or odd queue stays unknown and never rejects the reading.
+    for (const queued of [undefined, null, { closedWorkUnits: "12" }, { closedWorkUnits: 12, openRoundWorkUnits: "1" }, { closedWorkUnits: "-1", openRoundWorkUnits: "0" }]) {
+      body.builder.queued = queued;
+      expect(parseStatus(body).settlement?.queuedWork).toBeNull();
+    }
   });
 
   it("keeps the settled total unknown when the response leaves it out", () => {

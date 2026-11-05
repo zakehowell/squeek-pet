@@ -30,6 +30,8 @@ export interface Settlement {
   settledThroughRound: bigint;
   /** Work units SqueekCore has settled in total; null when the response leaves it out. */
   cumulativeWork?: bigint | null;
+  /** Measured work waiting to be settled (closed rounds plus the open one); null when unknown. */
+  queuedWork?: bigint | null;
   confirmedAt: number | null;
   transactionHash: string | null;
 }
