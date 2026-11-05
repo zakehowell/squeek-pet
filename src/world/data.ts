@@ -633,6 +633,15 @@ export const MILESTONE_DAMAGE: Record<string, number> = {
   "measurement.distance_streak": 800,
 };
 
+/**
+ * The most community activity and the hamster's milestones can each take off a
+ * boss, as a share of its HP. Together they stop at half, so the real hamster's
+ * settled work always lands at least half of every blow. Launch day alone
+ * brought 4,000 community actions, worth three bosses without a cap.
+ */
+export const COMMUNITY_SHARE = 0.3;
+export const MILESTONE_SHARE = 0.2;
+
 // ---- Starting world --------------------------------------------------------
 
 export const START_RESOURCES: Cost = { beans: 100, wood: 10, stone: 10, sunseed: 3 };

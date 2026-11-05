@@ -682,6 +682,9 @@ function applyGap(world: WorldState, gap: Gap) {
   });
 }
 
+/** Lines a resting entry keeps once, however many resting turns it gathers. */
+const MERGED_LINES = new Set(["d.guild.watch", "d.garden.grow", "d.adv.camp"]);
+
 export function applyTurn(world: WorldState, entry: LedgerEntry) {
   if (entry.kind === "gap") {
     applyGap(world, entry);
@@ -738,13 +741,14 @@ export function applyTurn(world: WorldState, entry: LedgerEntry) {
       last.tx = turn.tx;
       const head = last.lines[0];
       head.v = { ...head.v, rounds: last.rounds, dew: Number(head.v?.dew ?? 0) + dew, to: turn.to };
+      // Summary lines are merged so a long night reads as one entry, not one line per round.
       for (const line of lines) {
-        if (line.k === "d.guild.watch") {
-          const watch = last.lines.find((l) => l.k === "d.guild.watch");
-          if (watch) watch.v = { ...watch.v, n: Number(watch.v?.n ?? 0) + Number(line.v?.n ?? 0) };
-          else last.lines.push(line);
-        } else if (line.k !== "d.adv.camp" || !last.lines.some((l) => l.k === "d.adv.camp")) {
-          last.lines.push(line);
+        const same = last.lines.find((l) => l.k === line.k);
+        if (!same || !MERGED_LINES.has(line.k)) last.lines.push(line);
+        else if (line.k === "d.guild.watch") same.v = { ...same.v, n: Number(same.v?.n ?? 0) + Number(line.v?.n ?? 0) };
+        else if (line.k === "d.garden.grow") {
+          const plants = new Set(`${String(same.v?.plants ?? "")},${String(line.v?.plants ?? "")}`.split(",").filter(Boolean));
+          same.v = { ...same.v, plants: [...plants].join(",") };
         }
       }
     } else {
@@ -775,7 +779,7 @@ export function applyTurn(world: WorldState, entry: LedgerEntry) {
       blocks: turn.blocks,
       seed: turn.seed,
       tx: turn.tx,
-      lines: [{ k: "d.head.active", v: { to: turn.to, work: turn.work, blocks: turn.blocks, beans, rounds } }, ...lines],
+      lines: [{ k: "d.head.active", v: { to: turn.to, work: turn.work, blocks: turn.blocks, beans, rounds, ...(turn.sim ? { sim: 1 } : {}) } }, ...lines],
       sim: turn.sim,
     });
   }

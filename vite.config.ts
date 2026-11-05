@@ -18,6 +18,7 @@ export default defineConfig({
         pet: page("index.html"),
         hud: page("hud.html"),
         settings: page("settings.html"),
+        world: page("world.html"),
       },
     },
   },

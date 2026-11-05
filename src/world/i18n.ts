@@ -157,9 +157,12 @@ const EN_LINES: Record<string, LineFn> = {
   "d.start": (c) => `The world began after round ${c.r("to")}: a small meadow, a cottage, a wheel and three empty beds.`,
   "d.head.active": (c) => {
     const rounds = Number(c.v.rounds);
-    const where = rounds > 1 ? `Rounds ${String(Number(c.v.to) - rounds + 1)}–${c.r("to")} settled` : `Round ${c.r("to")} settled`;
+    const settled = c.v.sim ? "" : " settled";
+    const where = rounds > 1 ? `Rounds ${String(Number(c.v.to) - rounds + 1)}–${c.r("to")}${settled}` : `Round ${c.r("to")}${settled}`;
     const blocks = Number(c.v.blocks) > 0 ? ` ${c.n("blocks")} Squeek block${Number(c.v.blocks) === 1 ? "" : "s"} sealed.` : "";
-    return `${where} on Sepolia: ${c.n("work")} work units became ${c.n("beans")} data beans.${blocks}`;
+    // Trial turns are made up: they never claim to be settled on Sepolia.
+    const on = c.v.sim ? " (simulated)" : " on Sepolia";
+    return `${where}${on}: ${c.n("work")} work units became ${c.n("beans")} data beans.${blocks}`;
   },
   "d.head.rest": (c) => {
     const rounds = Number(c.v.rounds);
@@ -215,7 +218,8 @@ const ZH_LINES: Record<string, LineFn> = {
     const rounds = Number(c.v.rounds);
     const where = rounds > 1 ? `第 ${String(Number(c.v.to) - rounds + 1)}–${c.r("to")} 轮` : `第 ${c.r("to")} 轮`;
     const blocks = Number(c.v.blocks) > 0 ? `封存了 ${c.n("blocks")} 个 Squeek 区块。` : "";
-    return `${where}在 Sepolia 上结算：${c.n("work")} 个工作单位换来 ${c.n("beans")} 颗数据豆。${blocks}`;
+    const on = c.v.sim ? "（模拟）" : "在 Sepolia 上结算";
+    return `${where}${on}：${c.n("work")} 个工作单位换来 ${c.n("beans")} 颗数据豆。${blocks}`;
   },
   "d.head.rest": (c) => {
     const rounds = Number(c.v.rounds);
@@ -429,8 +433,12 @@ const en = {
   "guild.fromHamster": "Hamster",
   "guild.fromCommunity": "Community",
   "guild.fromMilestones": "Milestones",
-  "guild.actions": "{n} on-chain actions",
-  "guild.milestones": "{n} milestones",
+  "guild.actions": "{n} on-chain actions · up to {cap}",
+  "guild.milestones": "{n} milestones · up to {cap}",
+  "guild.full": "Full share: {pct}% of its HP",
+  "guild.settledWork": "Settled work this season",
+  "guild.caps": "Community activity can take off at most {community}% of its HP and milestones {milestones}%, so the hamster's own settled work always lands at least half.",
+  "guild.waitBoss": "Reading season {n}'s boss result…",
   "guild.loading": "Reading this week's settlements…",
   "guild.unknown": "Can't read this week's data right now.",
   "guild.partial": "Some community pages couldn't be read; real damage may be higher.",
@@ -480,6 +488,34 @@ const en = {
   "time.days": "{d}d {h}h",
   "time.hours": "{h}h {m}m",
   "time.minutes": "{m}m",
+  "log.empty": "Nothing has happened yet.",
+  "log.note": "Every settled SqueekCore batch is one entry. Resting rounds in a row share one.",
+  "log.more": "Show older entries ({n})",
+  "log.round": "Round {n}",
+  "log.rounds": "Rounds {from}–{to}",
+  "log.tx": "Settlement on Sepolia",
+  "log.trial": "Trial",
+  "sync.added": "{n} new settled turns",
+  "sync.now": "Sync now",
+  "bag.seeds": "Seed packets",
+  "bag.items": "Gear and supplies",
+  "bag.empty": "None yet",
+  "live.title": "The real Squeektoshi",
+  "live.note": "Live from Squeekchain. The world moves only when SqueekCore settles a round.",
+  "lang.label": "Language",
+  "guild.plan": "Battle plan",
+  "guild.mood": "Boss mood",
+  "guild.chance": "Chance",
+  "mode.label": "World",
+  "confirm.ok": "OK",
+  "confirm.cancel": "Cancel",
+  "save.title": "Your save",
+  "save.exportNote": "Copy this text and keep it somewhere safe. Importing it brings this world back.",
+  "save.importNote": "Paste a save exported from Squeek Pet World. It replaces the {world} on this device.",
+  "save.copy": "Copy",
+  "save.copied": "Copied",
+  "save.load": "Import",
+  "save.close": "Close",
   "open.world": "Open Squeek Pet World",
 };
 
@@ -587,8 +623,12 @@ const zh: Record<UiKey, string> = {
   "guild.fromHamster": "仓鼠",
   "guild.fromCommunity": "社区",
   "guild.fromMilestones": "里程碑",
-  "guild.actions": "{n} 次链上行动",
-  "guild.milestones": "{n} 个里程碑",
+  "guild.actions": "{n} 次链上行动 · 上限 {cap}",
+  "guild.milestones": "{n} 个里程碑 · 上限 {cap}",
+  "guild.full": "份额已满：血量的 {pct}%",
+  "guild.settledWork": "本季已结算的运动量",
+  "guild.caps": "社区活动最多打掉它 {community}% 的血量，里程碑最多 {milestones}%，所以至少一半要靠仓鼠自己已结算的运动量。",
+  "guild.waitBoss": "正在读取第 {n} 季 Boss 的结果……",
   "guild.loading": "正在读取本周结算…",
   "guild.unknown": "暂时读不到本周数据。",
   "guild.partial": "部分社区数据没读到，实际伤害可能更高。",
@@ -638,6 +678,34 @@ const zh: Record<UiKey, string> = {
   "time.days": "{d} 天 {h} 小时",
   "time.hours": "{h} 小时 {m} 分",
   "time.minutes": "{m} 分钟",
+  "log.empty": "还什么都没发生。",
+  "log.note": "SqueekCore 每结算一批就是一条记录，连续的休息回合合成一条。",
+  "log.more": "显示更早的记录（{n} 条）",
+  "log.round": "第 {n} 轮",
+  "log.rounds": "第 {from}–{to} 轮",
+  "log.tx": "Sepolia 上的结算",
+  "log.trial": "试玩",
+  "sync.added": "新结算了 {n} 个回合",
+  "sync.now": "立即同步",
+  "bag.seeds": "种子包",
+  "bag.items": "装备和补给",
+  "bag.empty": "还没有",
+  "live.title": "真实的 Squeektoshi",
+  "live.note": "实时来自 Squeekchain。只有 SqueekCore 结算了回合，世界才会前进。",
+  "lang.label": "语言",
+  "guild.plan": "作战计划",
+  "guild.mood": "Boss 心情",
+  "guild.chance": "概率",
+  "mode.label": "世界",
+  "confirm.ok": "确定",
+  "confirm.cancel": "取消",
+  "save.title": "存档",
+  "save.exportNote": "复制这段文字并妥善保存，导入它就能恢复这个世界。",
+  "save.importNote": "粘贴从 Squeek Pet World 导出的存档，它会替换这台设备上的{world}。",
+  "save.copy": "复制",
+  "save.copied": "已复制",
+  "save.load": "导入",
+  "save.close": "关闭",
   "open.world": "打开 Squeek Pet World",
 };
 

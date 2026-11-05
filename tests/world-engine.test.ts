@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { BEANS_PER_WORK, CHEST_TIERS, DEW_PER_REST, ITEMS, MAX_GEAR, PLANTS, REST_GROWTH, ROUTES, WELL_REST_BONUS } from "../src/world/data";
 import { applyChoice, check, chestTier, clockOf, craftCost, gearSlots, guildFor, hasPerk, newWorld, replay } from "../src/world/engine";
 import { seasonEnd, seasonOf, stanceFor } from "../src/world/season";
+import { renderLine } from "../src/world/i18n";
 import { prune, worldOf, type SaveFile } from "../src/world/store";
 import { simTurns } from "../src/world/sim";
 import type { Choice, ChoiceRecord, LedgerEntry, Turn } from "../src/world/types";
@@ -209,6 +210,29 @@ describe("world engine", () => {
     expect(hasPerk(later, "star")).toBe(true);
     expect(later.guild.contribution[season + 1]).toBeGreaterThan(0);
     expect(check(later, { t: "guild", guild: "cog", season: season + 2 })).toBeNull();
+  });
+
+  it("keeps one growth line for a long night of single-round settlements", () => {
+    // The real feed settles a resting round at a time; 18 of them share one diary entry.
+    const entries = Array.from({ length: 20 }, (_, i) => turn(101 + i, 0));
+    const choices = [choice(100, { t: "plant", plot: 0, plant: "carrot" }), choice(100, { t: "plant", plot: 1, plant: "clover" })];
+    const world = replay(base(), entries, choices);
+    const nights = world.diary.filter((d) => d.kind === "rest");
+    expect(nights.map((d) => d.rounds)).toEqual([18, 2]);
+    for (const night of nights) {
+      const grow = night.lines.filter((l) => l.k === "d.garden.grow");
+      expect(grow).toHaveLength(1);
+      expect(String(grow[0].v?.plants).split(",").sort()).toEqual(["carrot", "clover"]);
+    }
+  });
+
+  it("never says a trial turn was settled on Sepolia", () => {
+    const sim = turn(101, 500, { sim: true });
+    const world = replay(newWorld(ORIGIN, T, true), [sim], []);
+    const head = world.diary.find((d) => d.kind === "active")!.lines[0];
+    expect(renderLine("en", head)).not.toContain("Sepolia");
+    expect(renderLine("zh", head)).not.toContain("Sepolia");
+    expect(renderLine("en", replay(base(), [turn(101, 500)], []).diary.find((d) => d.kind === "active")!.lines[0])).toContain("settled on Sepolia");
   });
 
   it("gives nothing for rounds it could not read back", () => {
