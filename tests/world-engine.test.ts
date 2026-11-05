@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { BEANS_PER_WORK, CHEST_TIERS, DEW_PER_REST, ITEMS, MAX_GEAR, PLANTS, REST_GROWTH, ROUTES, WELL_REST_BONUS } from "../src/world/data";
-import { applyChoice, check, chestTier, clockOf, craftCost, gearSlots, newWorld, replay } from "../src/world/engine";
+import { applyChoice, check, chestTier, clockOf, craftCost, gearSlots, guildFor, hasPerk, newWorld, replay } from "../src/world/engine";
 import { seasonEnd, seasonOf, stanceFor } from "../src/world/season";
 import { prune, worldOf, type SaveFile } from "../src/world/store";
 import { simTurns } from "../src/world/sim";
@@ -188,6 +188,27 @@ describe("world engine", () => {
     expect(check(world, { t: "guild", guild: "seed", season: season + 2 })).toBe("err.season");
     expect(applyChoice(world, { t: "guild", guild: "seed", season })).toBeNull();
     expect(check(world, { t: "guild", guild: "cog", season })).toBe("err.joined");
+  });
+
+  it("keeps this season's guild when the player signs up for next season", () => {
+    const season = seasonOf(T);
+    const entries: Turn[] = [turn(101, 1000), turn(102, 1000, { at: seasonEnd(season) + 3600_000 })];
+    const choices = [choice(100, { t: "guild", guild: "seed", season }), choice(100, { t: "guild", guild: "star", season: season + 1 })];
+
+    // Before next season starts: still in the seed guild, star is only signed up.
+    const now = replay(base(), entries.slice(0, 1), choices);
+    expect(guildFor(now, season)).toBe("seed");
+    expect(guildFor(now, season + 1)).toBe("star");
+    expect(hasPerk(now, "seed")).toBe(true);
+    expect(check(now, { t: "guild", guild: "cog", season: season + 1 })).toBe("err.joined");
+    expect(now.guild.contribution[season]).toBeGreaterThan(0);
+
+    // The first turn of next season moves the sign-up into place, and it fights there.
+    const later = replay(base(), entries, choices);
+    expect(later.guild).toMatchObject({ guild: "star", season: season + 1, next: null });
+    expect(hasPerk(later, "star")).toBe(true);
+    expect(later.guild.contribution[season + 1]).toBeGreaterThan(0);
+    expect(check(later, { t: "guild", guild: "cog", season: season + 2 })).toBeNull();
   });
 
   it("gives nothing for rounds it could not read back", () => {

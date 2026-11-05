@@ -103,6 +103,8 @@ export interface GuildState {
   guild: GuildId | null;
   /** The season the player joined `guild` for. */
   season: number;
+  /** A sign-up for next season, kept apart so this season's guild stays until the week ends. */
+  next?: { guild: GuildId; season: number } | null;
   cls: ClassId;
   action: ActionId;
   /** Personal contribution by season number. */

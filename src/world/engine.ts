@@ -79,7 +79,7 @@ export function newWorld(origin: number, created: number, sim = false): WorldSta
     buildings: { cottage: 1 },
     expedition: null,
     routesDone: {},
-    guild: { guild: null, season: 0, cls: "ranger", action: "strike", contribution: {}, chests: [], hits: 0 },
+    guild: { guild: null, season: 0, next: null, cls: "ranger", action: "strike", contribution: {}, chests: [], hits: 0 },
     diary: [],
     news: [],
     stats: { work: 0, activeTurns: 0, restTurns: 0, restRounds: 0, harvests: 0, steps: 0, builds: 0, expeditions: 0, npcs: {} },
@@ -107,9 +107,26 @@ export const clockOf = (world: WorldState) => Math.max(world.created, world.last
 
 export const currentSeason = (world: WorldState) => seasonOf(clockOf(world));
 
+/** The guild the player belongs to for `season`: this season's, or the one signed up for next. */
+export function guildFor(world: WorldState, season: number): GuildId | null {
+  const state = world.guild;
+  if (state.guild && state.season === season) return state.guild;
+  if (state.next && state.next.season === season) return state.next.guild;
+  return null;
+}
+
+/** Once its season has begun, a sign-up for next season becomes the guild the player is in. */
+function rollGuild(world: WorldState, season: number) {
+  const next = world.guild.next;
+  if (!next || next.season > season) return;
+  world.guild.guild = next.guild;
+  world.guild.season = next.season;
+  world.guild.next = null;
+}
+
 /** True while the player belongs to `guild` for the season of `at`. */
 export function hasPerk(world: WorldState, guild: GuildId, at = clockOf(world)): boolean {
-  return world.guild.guild === guild && world.guild.season === seasonOf(at);
+  return guildFor(world, seasonOf(at)) === guild;
 }
 
 // ---- Costs -----------------------------------------------------------------
@@ -242,7 +259,7 @@ export function check(world: WorldState, choice: Choice): string | null {
       if (!(choice.guild in CLASSES_BY_GUILD)) return "err.unknown";
       const season = currentSeason(world);
       if (choice.season < season || choice.season > season + 1) return "err.season";
-      if (world.guild.guild && world.guild.season === choice.season) return "err.joined";
+      if (guildFor(world, choice.season)) return "err.joined";
       return null;
     }
     case "class":
@@ -283,6 +300,7 @@ function note(world: WorldState, key: string, lines: Line[]) {
 export function applyChoice(world: WorldState, choice: Choice): string | null {
   const error = check(world, choice);
   if (error) return error;
+  rollGuild(world, currentSeason(world));
   switch (choice.t) {
     case "plant": {
       const spec = PLANTS[choice.plant];
@@ -348,8 +366,12 @@ export function applyChoice(world: WorldState, choice: Choice): string | null {
       break;
     }
     case "guild":
-      world.guild.guild = choice.guild;
-      world.guild.season = choice.season;
+      if (choice.season === currentSeason(world)) {
+        world.guild.guild = choice.guild;
+        world.guild.season = choice.season;
+      } else {
+        world.guild.next = { guild: choice.guild, season: choice.season };
+      }
       note(world, `guild.${choice.season}`, [{ k: "d.event.guild", v: { guild: choice.guild, season: choice.season } }]);
       break;
     case "class":
@@ -597,7 +619,7 @@ function finishTrip(world: WorldState, turn: Turn, lines: Line[], news: Line[]) 
 function fight(world: WorldState, turn: Turn, rest: number, lines: Line[]) {
   const season = seasonOf(turn.at);
   const guild = world.guild;
-  if (!guild.guild || guild.season !== season) return;
+  if (!guildFor(world, season)) return;
   let gained = 0;
   if (turn.work > 0) {
     const stance = stanceFor(turn.seed, season);
@@ -666,6 +688,7 @@ export function applyTurn(world: WorldState, entry: LedgerEntry) {
     return;
   }
   const turn = entry;
+  rollGuild(world, seasonOf(turn.at));
   const rounds = turn.to - turn.from + 1;
   const rest = Math.max(0, rounds - turn.active);
   world.turns += 1;
