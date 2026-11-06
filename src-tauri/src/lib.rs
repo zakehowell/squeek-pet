@@ -427,6 +427,31 @@ const WORLD_WINDOW: WindowSpec = WindowSpec {
     min_size: (380.0, 520.0),
 };
 
+/// Room kept between a new window and the edges of the screen's work area.
+const SCREEN_MARGIN: f64 = 24.0;
+/// What a title bar and borders add to a window's content height, about.
+const FRAME_HEIGHT: f64 = 40.0;
+
+/// A new window's content size and outer position, in logical pixels: its
+/// usual size, shrunk to fit `area` (x, y, width, height) with a margin, and
+/// centred in it. A 1080p laptop at 150% has only about 1280×672 to share, so
+/// the World window's usual 1120×800 would hang below the taskbar there.
+fn fit_in_work_area(
+    size: (f64, f64),
+    min_size: (f64, f64),
+    area: (f64, f64, f64, f64),
+) -> (f64, f64, f64, f64) {
+    let (x, y, width, height) = area;
+    let w = size.0.min(width - 2.0 * SCREEN_MARGIN).max(min_size.0);
+    let h = size
+        .1
+        .min(height - 2.0 * SCREEN_MARGIN - FRAME_HEIGHT)
+        .max(min_size.1);
+    let left = x + ((width - w) / 2.0).max(0.0);
+    let top = y + ((height - h - FRAME_HEIGHT) / 2.0).max(0.0);
+    (w, h, left, top)
+}
+
 /// Shows a window, creating it if needed. Never call this on the main thread
 /// (commands without `async`, menu and window event handlers): see
 /// `open_settings`. `restore_window_geometry` on the other hand must run on
@@ -440,12 +465,28 @@ fn show_window(app: &AppHandle, spec: &WindowSpec) -> tauri::Result<()> {
         window.show()?;
         return window.set_focus();
     }
-    let window = WebviewWindowBuilder::new(app, spec.label, WebviewUrl::App(spec.url.into()))
+    let builder = WebviewWindowBuilder::new(app, spec.label, WebviewUrl::App(spec.url.into()))
         .title(spec.title)
-        .inner_size(spec.size.0, spec.size.1)
-        .min_inner_size(spec.min_size.0, spec.min_size.1)
-        .center()
-        .build()?;
+        .min_inner_size(spec.min_size.0, spec.min_size.1);
+    let builder = match app.primary_monitor()? {
+        Some(monitor) => {
+            let scale = monitor.scale_factor();
+            let area = monitor.work_area();
+            let (w, h, x, y) = fit_in_work_area(
+                spec.size,
+                spec.min_size,
+                (
+                    area.position.x as f64 / scale,
+                    area.position.y as f64 / scale,
+                    area.size.width as f64 / scale,
+                    area.size.height as f64 / scale,
+                ),
+            );
+            builder.inner_size(w, h).position(x, y)
+        }
+        None => builder.inner_size(spec.size.0, spec.size.1).center(),
+    };
+    let window = builder.build()?;
     // Restore on the main thread. The window-state plugin keeps its cache
     // locked while restore_state waits for the main thread to move the window,
     // and the main thread locks the same cache when it announces a new window.
@@ -465,7 +506,10 @@ fn show_window_soon(app: &AppHandle, spec: &'static WindowSpec) {
     let app = app.clone();
     std::thread::spawn(move || {
         if let Err(error) = show_window(&app, spec) {
-            eprintln!("[squeek-pet] could not open the {} window: {error}", spec.label);
+            eprintln!(
+                "[squeek-pet] could not open the {} window: {error}",
+                spec.label
+            );
         }
     });
 }
@@ -768,5 +812,45 @@ mod tests {
         let second_restart = bottom_right_origin(first_restart, scene_size, scene_size);
         assert_eq!(first_restart, migrated);
         assert_eq!(second_restart, migrated);
+    }
+
+    #[test]
+    fn a_new_window_keeps_its_size_on_a_big_screen_and_is_centred() {
+        let (w, h, x, y) = fit_in_work_area(
+            WORLD_WINDOW.size,
+            WORLD_WINDOW.min_size,
+            (0.0, 0.0, 1920.0, 1032.0),
+        );
+        assert_eq!((w, h), (1120.0, 800.0));
+        assert_eq!((x, y), (400.0, 96.0));
+    }
+
+    #[test]
+    fn a_new_window_shrinks_to_fit_a_small_screen_above_the_taskbar() {
+        // 1920×1080 at 150% with a 48 px taskbar: 1280×672 logical pixels.
+        let area = (0.0, 0.0, 1280.0, 672.0);
+        let (w, h, x, y) = fit_in_work_area(WORLD_WINDOW.size, WORLD_WINDOW.min_size, area);
+        assert_eq!((w, h), (1120.0, 584.0));
+        assert!(y >= SCREEN_MARGIN && y + h + FRAME_HEIGHT <= area.3 - SCREEN_MARGIN);
+        assert_eq!(x, 80.0);
+        // A second screen to the left of the main one has negative coordinates.
+        let (_, h, x, y) = fit_in_work_area(
+            SETTINGS_WINDOW.size,
+            SETTINGS_WINDOW.min_size,
+            (-1280.0, 0.0, 1280.0, 672.0),
+        );
+        assert_eq!(h, 584.0);
+        assert_eq!((x, y), (-850.0, 24.0));
+    }
+
+    #[test]
+    fn a_new_window_never_shrinks_below_its_minimum() {
+        let (w, h, x, y) = fit_in_work_area(
+            WORLD_WINDOW.size,
+            WORLD_WINDOW.min_size,
+            (0.0, 0.0, 360.0, 480.0),
+        );
+        assert_eq!((w, h), WORLD_WINDOW.min_size);
+        assert_eq!((x, y), (0.0, 0.0));
     }
 }
