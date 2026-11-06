@@ -78,8 +78,9 @@ function boss(v: View, season: number): HTMLElement {
     if (read.simulated) body.append(hint(tr(v, "guild.simBoss")));
     else if (!read.complete) body.append(hint(tr(v, "guild.partial"), "hint warn"));
   }
-  const shared = v.kind === "sim" ? tr(v, "guild.shared") : sentences(v, tr(v, "guild.shared"), tr(v, "guild.caps", { community: COMMUNITY_SHARE * 100, milestones: MILESTONE_SHARE * 100 }));
-  return card("guild-boss", tr(v, "guild.boss"), head, body, hint(shared));
+  // The trial boss explains itself above; the shared rules are for the real one.
+  const shared = v.kind === "sim" ? null : hint(sentences(v, tr(v, "guild.shared"), tr(v, "guild.caps", { community: COMMUNITY_SHARE * 100, milestones: MILESTONE_SHARE * 100 })));
+  return card("guild-boss", tr(v, "guild.boss"), head, body, shared);
 }
 
 function crestCard(v: View, id: GuildId, season: number, label: string): HTMLElement {
