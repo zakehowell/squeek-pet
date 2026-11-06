@@ -67,7 +67,9 @@ export type Choice =
   | { t: "guild"; guild: GuildId; season: number }
   | { t: "class"; cls: ClassId }
   | { t: "action"; action: ActionId }
-  | { t: "chest"; season: number; bossDefeated: boolean };
+  | { t: "chest"; season: number; bossDefeated: boolean }
+  /** Turns a home deed the player holds on Sepolia into one more bed (once per world). */
+  | { t: "deed"; deed: number };
 
 export interface ChoiceRecord {
   /** Order the player made the choices in. */
@@ -83,6 +85,8 @@ export interface Plot {
   area: AreaId;
   plant: PlantId | null;
   growth: number;
+  /** The home deed this bed stands on, for the one bed a deed adds. */
+  deed?: number;
 }
 
 export interface Expedition {
@@ -182,4 +186,6 @@ export interface WorldState {
   stats: WorldStats;
   /** Work units not yet turned into beans (1 bean per 10). */
   dust: number;
+  /** The home deed that added a bed to this world, if any. */
+  deed?: number;
 }

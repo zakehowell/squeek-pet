@@ -23,24 +23,28 @@ export interface PullResult {
  */
 export const CATCH_UP_PAGES = 40;
 
-export function foundWorld(origin: number, installation: string, now: number): SaveFile {
-  return { v: 1, kind: "real", installation, base: newWorld(origin, now), entries: [], choices: [], seq: 0, updated: now };
+export function foundWorld(origin: number, installation: string, now: number, owner?: string | null): SaveFile {
+  const save: SaveFile = { v: 1, kind: "real", installation, base: newWorld(origin, now), entries: [], choices: [], seq: 0, updated: now };
+  return owner ? { ...save, owner: owner.toLowerCase() } : save;
 }
 
-export async function pull(options: { fetchImpl?: FetchLike; storage?: StorageLike | null; now?: number; pause?: (ms: number) => Promise<void> } = {}): Promise<PullResult> {
+export async function pull(
+  options: { fetchImpl?: FetchLike; storage?: StorageLike | null; now?: number; pause?: (ms: number) => Promise<void>; owner?: string | null } = {},
+): Promise<PullResult> {
   const fetchImpl = options.fetchImpl ?? defaultFetch;
   const storage = options.storage === undefined ? safeStorage() : options.storage;
   const now = options.now ?? Date.now();
-  const existing = loadSave("real", storage);
+  const owner = options.owner ?? null;
+  const existing = loadSave("real", storage, owner);
   const after = existing ? (existing.entries.length ? existing.entries[existing.entries.length - 1].to : existing.base.frontier) : null;
   const read = await readSettlements(fetchImpl, after, CATCH_UP_PAGES, options.pause);
 
   // Re-read just before writing: another tab may have saved meanwhile.
-  let save = loadSave("real", storage) ?? existing;
+  let save = loadSave("real", storage, owner) ?? existing;
   if (!save) {
     const origin = read.newest?.to;
     if (origin === undefined) throw new Error("No settlement found to found the world on");
-    save = foundWorld(origin, read.installationId, now);
+    save = foundWorld(origin, read.installationId, now, owner);
     writeSave(save, storage);
     return { save, changed: true, added: [], founded: true, reorg: false };
   }
@@ -79,8 +83,8 @@ export async function pull(options: { fetchImpl?: FetchLike; storage?: StorageLi
 }
 
 /** Records a choice in a save after re-reading it, so two windows don't overwrite each other. */
-export function recordChoice(kind: SaveFile["kind"], choice: Choice, now = Date.now(), storage: StorageLike | null = safeStorage()): SaveFile | null {
-  const save = loadSave(kind, storage);
+export function recordChoice(kind: SaveFile["kind"], choice: Choice, now = Date.now(), storage: StorageLike | null = safeStorage(), owner?: string | null): SaveFile | null {
+  const save = loadSave(kind, storage, owner);
   if (!save) return null;
   const frontier = save.entries.length ? save.entries[save.entries.length - 1].to : save.base.frontier;
   const record: ChoiceRecord = { seq: save.seq + 1, at: frontier, made: now, c: choice };

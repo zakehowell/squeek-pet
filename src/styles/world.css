@@ -67,7 +67,8 @@ p {
 }
 
 button,
-textarea {
+textarea,
+input {
   font: inherit;
   color: inherit;
 }
@@ -80,7 +81,8 @@ button {
 button:focus-visible,
 summary:focus-visible,
 a:focus-visible,
-textarea:focus-visible {
+textarea:focus-visible,
+input:focus-visible {
   outline: 3px solid var(--w-green-light);
   outline-offset: 4px;
 }
@@ -217,6 +219,17 @@ img.px {
 
 .side-help {
   order: 4;
+}
+
+/* The wallet's tokens: at the top of the side column, after the world on a phone. */
+.side-wallet {
+  order: 3;
+}
+
+.side-wallet:empty,
+.side-sync:empty,
+.tabs:empty {
+  display: none;
 }
 
 .world.wide .layout {
@@ -1670,6 +1683,897 @@ li.route.locked .why {
   border: 2px solid var(--w-amber);
 }
 
+/* ---- Sepolia: the wallet ---- */
+
+.wallet-chip {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: var(--w-t10);
+  font-family: var(--w-f10);
+}
+
+.wallet-chip.on {
+  padding: 3px 3px 3px 10px;
+  background: var(--w-panel);
+  box-shadow: var(--w-frame);
+}
+
+.wallet-chip .addr {
+  font-variant-numeric: tabular-nums;
+}
+
+.wallet-chip .btn {
+  margin: 0;
+}
+
+.wallet-ico {
+  display: inline-block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.wallet-ico.blank {
+  background: var(--w-lime);
+  box-shadow: inset 0 0 0 2px var(--w-green-mid);
+}
+
+.net {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--w-t8);
+  font-family: var(--w-f8);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--w-green);
+}
+
+.net .dot {
+  width: 6px;
+  height: 6px;
+  background: var(--w-green-mid);
+}
+
+.btn.warn {
+  background: var(--w-gold-soft);
+}
+
+.wallet-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.wallet-pick {
+  width: calc(100% - 4px);
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 10px 14px;
+  font-size: var(--w-t12);
+  font-family: var(--w-f12);
+}
+
+.wallet-pick .wallet-ico {
+  width: 24px;
+  height: 24px;
+}
+
+.wallet-gate {
+  border-top: 8px solid var(--w-gold);
+}
+
+.wallet-gate p {
+  line-height: 1.8;
+}
+
+.gate-body {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.world.compact .gate-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.world.compact .gate-body .mill-pic {
+  justify-self: start;
+}
+
+.gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.wallet-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.wallet-rows li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 10px;
+  padding: 7px 10px;
+  background: var(--w-panel-2);
+  border: 2px solid var(--w-line);
+  font-size: var(--w-t10);
+  font-family: var(--w-f10);
+}
+
+.wallet-rows li > span:first-child {
+  color: var(--w-muted);
+}
+
+.wallet-card > .btn {
+  margin-top: 12px;
+}
+
+/* ---- Sepolia: shared pieces ---- */
+
+.small {
+  font-size: var(--w-t10);
+  font-family: var(--w-f10);
+  line-height: 1.8;
+}
+
+.tok {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tok-ico {
+  display: inline-flex;
+  flex: none;
+}
+
+.tok-ico :is(svg, img) {
+  width: 16px;
+  height: 16px;
+}
+
+.tok-sym {
+  color: var(--w-muted);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.stat {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--w-panel-2);
+  border: 2px solid var(--w-line);
+}
+
+.stat-value {
+  font-size: var(--w-t12);
+  font-family: var(--w-f12);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.stat-value .tok {
+  white-space: normal;
+}
+
+.stat-note {
+  font-size: var(--w-t8);
+  font-family: var(--w-f8);
+  color: var(--w-muted-2);
+}
+
+.amount-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.amount-input,
+.name-input {
+  flex: 1;
+  min-width: 0;
+  margin: 2px;
+  padding: 8px 10px;
+  border: 0;
+  background: var(--w-panel);
+  color: var(--w-ink);
+  box-shadow: var(--w-frame), inset 2px 2px 0 0 var(--w-line);
+  font-size: var(--w-t12);
+  font-family: var(--w-f12);
+  font-variant-numeric: tabular-nums;
+}
+
+.amount-input::placeholder,
+.name-input::placeholder {
+  color: var(--w-muted-2);
+}
+
+.busy-line,
+.chain-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  font-size: var(--w-t10);
+  font-family: var(--w-f10);
+  line-height: 1.8;
+}
+
+.busy-line {
+  background: var(--w-gold-50);
+  border: 2px solid var(--w-amber);
+}
+
+.chain-notice {
+  background: var(--w-red-soft);
+  border: 2px solid var(--w-red);
+}
+
+.spinner {
+  width: 10px;
+  height: 10px;
+  background: var(--w-amber);
+  animation: spin-blink 0.8s steps(2) infinite;
+}
+
+@keyframes spin-blink {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.ext {
+  color: var(--w-green);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.ext:hover {
+  color: var(--w-green-mid);
+}
+
+.toast .ext {
+  color: inherit;
+  pointer-events: auto;
+}
+
+/* ---- Sepolia: staking ---- */
+
+.mill-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.mill-pic {
+  padding: 4px;
+  background: var(--w-soft-2);
+  border: 2px solid var(--w-line);
+}
+
+.mill-pic :is(svg, img) {
+  width: 96px;
+  height: 96px;
+}
+
+.world.compact .mill-head {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.world.compact .mill-pic {
+  justify-self: start;
+}
+
+.pending-work {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--w-soft-2);
+  border: 2px dashed var(--w-green-light);
+  font-size: var(--w-t10);
+  font-family: var(--w-f10);
+  line-height: 1.8;
+}
+
+.pending-work p {
+  flex: 1 1 240px;
+}
+
+.claim-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin-top: 16px;
+}
+
+.claim-row .hint {
+  margin: 0;
+}
+
+.stake-forms {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.stake-form {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--w-panel-2);
+  border: 2px solid var(--w-line);
+}
+
+.stake-form h3 {
+  margin: 0;
+}
+
+.stake-form .btn {
+  justify-self: start;
+}
+
+.faucet-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 14px;
+}
+
+.contracts {
+  margin-top: 14px;
+  color: var(--w-muted);
+}
+
+.contracts .label {
+  margin-right: 4px;
+}
+
+/* ---- Sepolia: the town ---- */
+
+.sold-count {
+  margin-top: 12px;
+  font-size: var(--w-t10);
+  font-family: var(--w-f10);
+  color: var(--w-muted);
+}
+
+.buy-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: var(--w-panel-2);
+  border: 2px solid var(--w-line);
+}
+
+.buy-text {
+  display: grid;
+  gap: 4px;
+  font-size: var(--w-t10);
+  font-family: var(--w-f10);
+}
+
+.buy-text strong {
+  font-size: var(--w-t12);
+  font-family: var(--w-f12);
+  font-weight: 400;
+}
+
+.world.compact .buy-row {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.world.compact .buy-row > .btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.plot-pic :is(svg, img) {
+  width: 42px;
+  height: 42px;
+}
+
+.plot-pic.big :is(svg, img) {
+  width: 56px;
+  height: 56px;
+}
+
+.town-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+  gap: 2px;
+  margin-top: 16px;
+  padding: 6px;
+  background: #8cc26b;
+  border: 2px solid var(--w-ink);
+  box-shadow: 4px 4px 0 0 var(--w-shade);
+}
+
+.tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.tile-pic {
+  display: block;
+}
+
+.tile-pic :is(svg, img) {
+  width: 42px;
+  height: 42px;
+}
+
+.tile:hover .tile-pic {
+  filter: brightness(1.08);
+}
+
+.tile.on {
+  outline: 3px solid var(--w-ink);
+  outline-offset: -1px;
+  z-index: 1;
+}
+
+.tile-n {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  min-width: 14px;
+  padding: 0 2px;
+  background: var(--w-panel);
+  color: var(--w-ink);
+  box-shadow: 0 0 0 1px var(--w-ink);
+  font-size: 8px;
+  font-family: "Squeek Pixel 8", var(--w-fallback);
+  line-height: 1.5;
+  text-align: center;
+}
+
+.tile.free .tile-n {
+  color: var(--w-muted-2);
+}
+
+.tile.mine .tile-n {
+  background: var(--w-gold);
+}
+
+.plot-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--w-panel-2);
+  border: 2px solid var(--w-line);
+  font-size: var(--w-t10);
+  font-family: var(--w-f10);
+  line-height: 1.8;
+}
+
+.plot-detail strong {
+  font-weight: 400;
+}
+
+.my-deeds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.my-deed {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--w-gold-50);
+  border: 2px solid var(--w-gold);
+}
+
+.my-deed-body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.my-deed-body > strong {
+  font-weight: 400;
+}
+
+.name-row,
+.renovate,
+.bed-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.name-row .name-input {
+  flex: 1 1 160px;
+}
+
+.decos {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.deco {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  justify-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: var(--w-panel-2);
+  border: 2px solid var(--w-line);
+  text-align: center;
+  font-size: var(--w-t10);
+  font-family: var(--w-f10);
+  line-height: 1.6;
+}
+
+.deco strong {
+  font-weight: 400;
+}
+
+.deco.owned {
+  background: var(--w-soft-2);
+  border-color: var(--w-green-mid);
+}
+
+.deco-pic :is(svg, img) {
+  width: 56px;
+  height: 56px;
+}
+
+.deco-pic.small :is(svg, img) {
+  width: 28px;
+  height: 28px;
+}
+
+.deco-collection {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.deco-mini {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  background: var(--w-panel-2);
+  border: 2px solid var(--w-line);
+  font-size: var(--w-t8);
+  font-family: var(--w-f8);
+  color: var(--w-muted);
+}
+
+.deed-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: var(--w-gold-50);
+  border: 2px solid var(--w-amber);
+}
+
+.deed-hint .hint {
+  flex: 1 1 220px;
+  margin: 0;
+}
+
+/* ---- Sepolia: the guild war ---- */
+
+.register {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 12px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  background: var(--w-gold-50);
+  border: 2px solid var(--w-amber);
+  font-size: var(--w-t10);
+  font-family: var(--w-f10);
+  line-height: 1.8;
+}
+
+.world.compact .register {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.world.compact .register > .btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.supply {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--w-panel-2);
+  border: 2px solid var(--w-line);
+}
+
+.supply h3 {
+  margin-top: 0;
+}
+
+.supply .hint {
+  margin-top: 0;
+}
+
+.supply-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+
+.supply-row .amount-field {
+  flex: 1 1 200px;
+}
+
+.board {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.war-board .hint + .board {
+  margin-top: 12px;
+}
+
+.board-row {
+  display: grid;
+  grid-template-columns: 24px auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--w-panel-2);
+  border: 2px solid var(--w-line);
+}
+
+.board-row.yours {
+  background: var(--w-soft-2);
+  border-color: var(--w-green-mid);
+}
+
+.board-row .crest-pic.small {
+  margin-right: 0;
+}
+
+.rank {
+  font-size: var(--w-t12);
+  font-family: var(--w-f12);
+  color: var(--w-muted-2);
+  text-align: center;
+}
+
+.board-name {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.board-name strong,
+.player-guild-text strong,
+.banner-name {
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.board-supply {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  font-size: var(--w-t10);
+  font-family: var(--w-f10);
+}
+
+.player-guilds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.player-guild {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--w-panel-2);
+  border: 2px solid var(--guild, var(--w-line));
+}
+
+.player-guild-text {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.player-guild-text strong {
+  font-size: var(--w-t12);
+  font-family: var(--w-f12);
+}
+
+.world.compact .player-guild {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.world.compact .player-guild > .btn {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
+
+.found-body {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 14px;
+}
+
+.world.compact .found-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.banner-preview {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 8px;
+  padding: 12px 8px;
+  background: var(--w-soft-2);
+  border: 2px solid var(--w-line);
+  text-align: center;
+}
+
+.banner-pic :is(svg, img) {
+  width: 96px;
+  height: 96px;
+}
+
+.found-fields .field:last-child {
+  margin-bottom: 0;
+}
+
+.flag-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 2px;
+}
+
+.swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: var(--fill);
+  box-shadow: 0 0 0 2px var(--w-ink), inset -4px -4px 0 0 var(--ink);
+}
+
+.swatch.on {
+  outline: 3px solid var(--w-ink);
+  outline-offset: 3px;
+}
+
+.perk-picks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 2px;
+}
+
+.world.compact .perk-picks {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.perk-pick {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 0;
+  background: var(--w-panel);
+  box-shadow: 0 0 0 2px var(--w-line-2);
+  text-align: left;
+  font-size: var(--w-t10);
+  font-family: var(--w-f10);
+  line-height: 1.6;
+}
+
+.perk-pick:hover {
+  background: var(--w-soft-2);
+}
+
+.perk-pick strong {
+  display: block;
+  font-weight: 400;
+}
+
+.perk-pick small {
+  display: block;
+  font-size: var(--w-t8);
+  font-family: var(--w-f8);
+  color: var(--w-muted);
+}
+
+.perk-pick.on {
+  background: var(--w-soft-2);
+  box-shadow: 0 0 0 2px var(--guild, var(--w-green-mid)), inset 0 0 0 2px var(--guild, var(--w-green-mid));
+}
+
+.perk-pick .crest-pic.small {
+  margin-right: 0;
+}
+
+.war-found > .btn {
+  margin-top: 14px;
+}
+
 /* ---- Toasts and dialogs ---- */
 
 .toasts {
@@ -1782,9 +2686,17 @@ li.route.locked .why {
   gap: 6px;
 }
 
+/* Six tabs on a phone: two rows of three instead of a row that hides the last ones. */
+.world.compact .tabs[data-count="6"] {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: visible;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .toast,
-  .btn {
+  .btn,
+  .spinner {
     animation: none;
     transition: none;
   }

@@ -5,14 +5,20 @@ import { MARKS } from "../art/icons";
 import { bossArt, chestArt, guildCrest } from "../art/world-art";
 import { bossOf, seasonEnd } from "../season";
 import type { ActionId, ClassId, GuildId } from "../types";
+import { ct } from "../i18n-chain";
 import { art, h } from "./dom";
 import { bar, card, choiceButton, hint, segmented, sentences, tr, type View } from "./parts";
+import { foundGuild, playerGuilds, warBoard, warMember } from "./war";
 
 // Plan D, the guild: this week's shared boss, the player's guild, class and
-// plan, and the season chests.
+// plan, and the season chests. On Sepolia the guild is recorded on-chain and
+// guilds send SQB supplies to the boss (see ./war).
 
 export function guildView(v: View): HTMLElement[] {
   const season = currentSeason(v.world);
+  if (v.chain) {
+    return [boss(v, season), warMember(v), warBoard(v), plan(v, season), chests(v, season), playerGuilds(v), foundGuild(v)].filter((part): part is HTMLElement => part !== null);
+  }
   return [boss(v, season), membership(v, season), plan(v, season), chests(v, season)];
 }
 
@@ -73,13 +79,20 @@ function boss(v: View, season: number): HTMLElement {
               milestonesFull ? tr(v, "guild.full", { pct: MILESTONE_SHARE * 100 }) : tr(v, "guild.milestones", { n: read.milestoneCount, cap: read.milestoneCap }),
               milestonesFull,
             ),
+        read.hasSupplies ? source(ct(v.lang, "guild.fromSupplies"), read.supplies, ct(v.lang, "guild.suppliesNote")) : null,
       ),
     );
     if (read.simulated) body.append(hint(tr(v, "guild.simBoss")));
     else if (!read.complete) body.append(hint(tr(v, "guild.partial"), "hint warn"));
   }
   // The trial boss explains itself above; the shared rules are for the real one.
-  const shared = v.kind === "sim" ? null : hint(sentences(v, tr(v, "guild.shared"), tr(v, "guild.caps", { community: COMMUNITY_SHARE * 100, milestones: MILESTONE_SHARE * 100 })));
+  const caps = { community: COMMUNITY_SHARE * 100, milestones: MILESTONE_SHARE * 100 };
+  const shared =
+    v.kind === "sim"
+      ? null
+      : v.boss.state === "ready" && v.boss.boss.hasSupplies
+        ? hint(sentences(v, ct(v.lang, "war.shared"), ct(v.lang, "war.caps", caps)))
+        : hint(sentences(v, tr(v, "guild.shared"), tr(v, "guild.caps", caps)));
   return card("guild-boss", tr(v, "guild.boss"), head, body, shared);
 }
 
@@ -201,6 +214,6 @@ function chests(v: View, season: number): HTMLElement {
     progress,
     hint(sentences(v, tr(v, "guild.watch", { n: NIGHT_WATCH }), tr(v, "guild.chestOpensAfter"))),
     ready.length ? h("ul", { class: "chests-ready" }, ...ready) : null,
-    hint(tr(v, "guild.noLeaderboard"), "hint small"),
+    v.chain ? null : hint(tr(v, "guild.noLeaderboard"), "hint small"),
   );
 }

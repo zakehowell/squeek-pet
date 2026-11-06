@@ -376,6 +376,35 @@ export function guildCrest(id: GuildId, cls = "crest"): string {
   );
 }
 
+/** The eight banner colors a founded guild can fly: fill and outline. */
+export const FLAG_COLORS: readonly [string, string][] = [
+  ["#e86a5c", "#a33d32"],
+  ["#f0a04b", "#a8601f"],
+  ["#f2cf4a", "#a5861a"],
+  ["#6cc05a", "#3f8c3a"],
+  ["#4fb7c9", "#2a7a8a"],
+  ["#5a8be0", "#2f56a3"],
+  ["#9a7ae8", "#5b49c4"],
+  ["#e27fb3", "#a3477a"],
+];
+
+const PERK_GUILDS: readonly GuildId[] = ["seed", "lantern", "cog", "star"];
+
+/** A founded guild's banner: its flag color with the emblem of the perk it chose. */
+export function bannerArt(flag: number, perk: number, cls = "crest"): string {
+  const [fill, ink] = FLAG_COLORS[((flag % 8) + 8) % 8];
+  const emblem = EMBLEM[PERK_GUILDS[((perk % 4) + 4) % 4]];
+  return svg(
+    `<path d="M6.4 3v26.4" stroke="#7d4f31" stroke-width="2" stroke-linecap="round"/>
+     <circle cx="6.4" cy="3.2" r="1.6" fill="#ffd25a" stroke="#a5861a" stroke-width=".8"/>
+     <path d="M7.4 4.6h20l-3.6 6.2 3.6 6.2h-20Z" fill="${fill}" stroke="${ink}" stroke-width="1.3" stroke-linejoin="round" transform="translate(0 2) scale(1 1.25)"/>
+     <path d="M9 7.6h11" stroke="#fff" stroke-width="1.1" stroke-linecap="round" opacity=".5"/>
+     <g transform="translate(2.4 2.4) scale(.82)">${emblem}</g>`,
+    "0 0 32 32",
+    cls,
+  );
+}
+
 /** Paw prints for the trail. */
 export const PAW = svg(
   `<ellipse cx="12" cy="15.4" rx="4.6" ry="3.9" fill="currentColor"/><circle cx="6.6" cy="10" r="1.9" fill="currentColor"/><circle cx="10" cy="6.8" r="1.9" fill="currentColor"/><circle cx="14" cy="6.8" r="1.9" fill="currentColor"/><circle cx="17.4" cy="10" r="1.9" fill="currentColor"/>`,

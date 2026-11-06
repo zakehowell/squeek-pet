@@ -7,10 +7,11 @@ import type { SharedBoss } from "../boss";
 import type { WorldKind } from "../store";
 import type { Choice, GearId, ResourceId, RouteId, WorldState } from "../types";
 import { art, h, type Child } from "./dom";
+import type { ChainView } from "./chain-parts";
 
 // What every part of the World page draws from, and the small widgets they share.
 
-export type Tab = "home" | "adventure" | "log" | "guild";
+export type Tab = "home" | "adventure" | "log" | "guild" | "stake" | "town";
 
 /** Page-only state: nothing here changes the world. */
 export interface UiState {
@@ -23,6 +24,13 @@ export interface UiState {
   charm: boolean;
   /** How many log entries are shown. */
   logShown: number;
+  /** What the player typed in the on-chain forms, kept across redraws. */
+  form: Record<string, string>;
+  /** The plot picked on the town map. */
+  plot: number | null;
+  /** The banner being designed in "Found a guild". */
+  flag: number;
+  perk: number;
 }
 
 export type BossRead = { state: "loading" } | { state: "error" } | { state: "ready"; boss: SharedBoss };
@@ -41,6 +49,10 @@ export interface View {
   /** Redraws after a change to `ui`. */
   redraw(): void;
   openUrl(url: string): void;
+  /** A short message at the bottom of the World. */
+  toast(text: string, tone?: "ok" | "warn" | "news"): void;
+  /** Sepolia, in the real world once the World's contracts are set up and a wallet is connected. */
+  chain: ChainView | null;
 }
 
 export const tr = (v: View, key: UiKey, values?: Record<string, string | number>) => ui(v.lang, key, values);

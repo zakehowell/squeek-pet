@@ -266,6 +266,9 @@ export function check(world: WorldState, choice: Choice): string | null {
       return CLASSES[choice.cls] ? null : "err.unknown";
     case "action":
       return choice.action in EFFECT ? null : "err.unknown";
+    case "deed":
+      if (!Number.isSafeInteger(choice.deed) || choice.deed < 1) return "err.unknown";
+      return world.deed ? "err.deedPlaced" : null;
     case "chest": {
       if (choice.season >= currentSeason(world)) return "err.seasonOpen";
       if (world.guild.chests.includes(choice.season)) return "err.opened";
@@ -390,6 +393,11 @@ export function applyChoice(world: WorldState, choice: Choice): string | null {
       ]);
       break;
     }
+    case "deed":
+      world.deed = choice.deed;
+      world.plots.push({ area: "meadow", plant: null, growth: 0, deed: choice.deed });
+      note(world, `deed.${choice.deed}`, [{ k: "d.event.deed", v: { n: choice.deed } }]);
+      break;
   }
   return null;
 }

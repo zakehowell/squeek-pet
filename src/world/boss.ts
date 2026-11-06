@@ -16,7 +16,8 @@ import type { LedgerEntry } from "./types";
 
 // The weekly boss is shared: its hit points fall with the real hamster's
 // settled work this season, plus real community activity on Squeekchain and
-// the hamster's milestones, each capped at a share of the boss's HP. Everyone
+// the hamster's milestones, each capped at a share of the boss's HP, plus the
+// SQB players burn as guild-war supplies on Sepolia (uncapped). Everyone
 // reads the same public data, so everyone sees the same boss without any
 // server of ours.
 
@@ -33,6 +34,10 @@ export interface SharedBoss {
   milestoneCount: number;
   communityCap: number;
   milestoneCap: number;
+  /** Damage from SQB supplies; null while unknown. */
+  supplies: number | null;
+  /** Whether supplies count in this world (the on-chain real world). */
+  hasSupplies: boolean;
   /** False when some community pages could not be read, so the damage is only a lower bound. */
   complete: boolean;
   damage: number | null;
@@ -71,11 +76,21 @@ export function settles(read: CommunityRead | null, season: number, cap: number)
   return read.coveredFrom <= seasonStart(season) || seasonDamage(read.events, season).damage >= cap;
 }
 
+/** Damage from SQB supplies (in wei): 10 per whole SQB, as WorldShop.DAMAGE_PER_SQB. */
+export function supplyDamage(wei: bigint): number {
+  return Number((wei * 10n) / 10n ** 18n);
+}
+
+/**
+ * The boss of `season`. `supplies` is the SQB damage from Sepolia: undefined
+ * where supplies don't count, null while it is unknown.
+ */
 export function sharedBoss(
   season: number,
   days: readonly WorkBucket[] | null,
   players: CommunityRead | null,
   milestones: CommunityRead | null,
+  supplies?: number | null,
 ): SharedBoss {
   const boss = bossOf(season);
   const caps = { community: communityCap(boss), milestones: milestoneCap(boss) };
@@ -84,8 +99,10 @@ export function sharedBoss(
   const fromMilestones = milestones ? seasonDamage(milestones.events, season) : null;
   const community = fromPlayers ? Math.min(caps.community, fromPlayers.damage) : null;
   const crit = fromMilestones ? Math.min(caps.milestones, fromMilestones.damage) : null;
-  const damage = hamster === null ? null : hamster + (community ?? 0) + (crit ?? 0);
-  const complete = settles(players, season, caps.community) && settles(milestones, season, caps.milestones);
+  const hasSupplies = supplies !== undefined;
+  const supplied = supplies ?? null;
+  const damage = hamster === null ? null : hamster + (community ?? 0) + (crit ?? 0) + (supplied ?? 0);
+  const complete = settles(players, season, caps.community) && settles(milestones, season, caps.milestones) && (!hasSupplies || supplied !== null);
   return {
     season,
     boss,
@@ -98,6 +115,8 @@ export function sharedBoss(
     milestoneCount: fromMilestones?.count ?? 0,
     communityCap: caps.community,
     milestoneCap: caps.milestones,
+    supplies: supplied,
+    hasSupplies,
     complete,
     damage,
     left: damage === null ? null : Math.max(0, boss.hp - damage),
@@ -166,6 +185,8 @@ export function simulatedBoss(season: number, entries: readonly LedgerEntry[]): 
     milestoneCount: 0,
     communityCap: 0,
     milestoneCap: 0,
+    supplies: null,
+    hasSupplies: false,
     complete: true,
     damage: hamster,
     left: Math.max(0, boss.hp - hamster),

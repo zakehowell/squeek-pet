@@ -4,8 +4,9 @@ import { errorText } from "../i18n";
 import { itemIcon, MARKS, resIcon, seedIcon } from "../art/icons";
 import { areaArt, buildingArt, plantArt, stageOf } from "../art/world-art";
 import type { AreaId, ItemId, PlantId, Plot } from "../types";
+import { ct } from "../i18n-chain";
 import { art, h } from "./dom";
-import { bar, card, choiceButton, costChips, plainButton, rewardChips, tr, type View } from "./parts";
+import { bar, card, choiceButton, costChips, hint, plainButton, rewardChips, tr, type View } from "./parts";
 
 // Plan A, the home: garden beds, buildings, the map and the workshop.
 
@@ -26,11 +27,21 @@ function beds(v: View): HTMLElement {
     return h("div", { class: "bed-group" }, h("h3", null, areaSpec(area).name[v.lang]), h("div", { class: "beds" }, ...cards));
   });
   const picker = v.ui.picking !== null && v.world.plots[v.ui.picking] && !v.world.plots[v.ui.picking].plant ? seedPicker(v, v.ui.picking) : null;
-  return card("home-beds", tr(v, "home.beds"), ...groups, picker);
+  return card("home-beds", tr(v, "home.beds"), ...groups, picker, deedHint(v));
+}
+
+/** A home deed on Sepolia whose bed isn't in the world yet. */
+function deedHint(v: View): HTMLElement | null {
+  if (!v.chain || v.world.deed || !(v.chain.s.overview?.deedsOwned ?? 0)) return null;
+  const go = () => {
+    v.ui.tab = "town";
+    v.redraw();
+  };
+  return h("div", { class: "deed-hint" }, hint(ct(v.lang, "home.deedHint")), plainButton(ct(v.lang, "home.toTown"), go, "btn small primary"));
 }
 
 function bed(v: View, plot: Plot, index: number): HTMLElement {
-  const label = tr(v, "home.bed", { n: index + 1 });
+  const label = plot.deed ? ct(v.lang, "home.deedBed", { n: plot.deed }) : tr(v, "home.bed", { n: index + 1 });
   if (!plot.plant) {
     const open = () => {
       v.ui.picking = v.ui.picking === index ? null : index;

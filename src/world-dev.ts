@@ -10,7 +10,17 @@ import { ui } from "./world/i18n";
 let lang: Language = new URLSearchParams(location.search).get("lang") === "zh" ? "zh" : "en";
 const title = document.querySelector("h1")!;
 const toggle = document.querySelector<HTMLButtonElement>("#lang")!;
-const world = mountWorld(document.querySelector<HTMLElement>("#world")!, { language: lang });
+// ?chain=local plays on a local fork of Sepolia (contracts/scripts/local-world.cjs);
+// automated runs can hand in a deployment as window.__squeekChain.
+async function chainConfig(): Promise<unknown> {
+  const handed = (window as { __squeekChain?: unknown }).__squeekChain;
+  if (handed) return handed;
+  if (new URLSearchParams(location.search).get("chain") !== "local") return undefined;
+  const response = await fetch("/contracts/deploy/local.json", { cache: "no-store" });
+  return response.ok ? response.json() : undefined;
+}
+
+const world = mountWorld(document.querySelector<HTMLElement>("#world")!, { language: lang, chain: await chainConfig() });
 
 function label() {
   document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
