@@ -1,0 +1,21 @@
+{
+  "name": "squeek-pet-world-contracts",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Squeek Pet World on Sepolia: the SQB token, SQK staking that mints SQB from the hamster's settled work, the world shop and a testnet SQK faucet.",
+  "license": "MIT",
+  "scripts": {
+    "build": "hardhat compile",
+    "test": "hardhat test",
+    "test:fork": "SQUEEK_FORK=1 hardhat test test/fork.spec.cjs",
+    "export": "hardhat compile && node scripts/export.cjs",
+    "node:fork": "SQUEEK_FORK=1 hardhat node",
+    "local:deploy": "hardhat run --network localhost scripts/local-world.cjs"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "3.1.3",
+    "@openzeppelin/contracts": "5.6.1",
+    "ethers": "6.17.0",
+    "hardhat": "2.29.1"
+  }
+}
