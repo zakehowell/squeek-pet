@@ -15,11 +15,9 @@ import { Hud } from "./pet/hud";
 import { DesktopHud } from "./pet/desktop-hud";
 import { LiveButton } from "./pet/live-button";
 import { mountPlayDock } from "./pet/play-dock";
-import { PULSE_URL, WORLD_LINK, bubbleContent, type BubbleContent, offersLiveStream, panelContent, petLabel, toastContent } from "./pet/present";
-import { WorldLink } from "./pet/world-link";
+import { PULSE_URL, WORLD_URL, bubbleContent, offersLiveStream, panelContent, petLabel, toastContent } from "./pet/present";
 import { desktop, inTauri, type HitRect, type MenuItems } from "./platform/desktop";
 import { Sounds } from "./sound";
-import { newsToast, worldSummary } from "./world/summary";
 
 // The pet window: polls the wheel, runs the state machine, draws the frame.
 
@@ -44,7 +42,7 @@ let panelOpen = false;
 
 const HudView = inTauri ? DesktopHud : Hud;
 const hud = new HudView(root, {
-  openUrl: (url) => (url === WORLD_LINK ? desktop.openWorld() : desktop.openUrl(url)),
+  openUrl: (url) => desktop.openUrl(url),
   openSettings: () => desktop.openSettings(),
   closePanel: () => setPanel(false),
 });
@@ -77,15 +75,6 @@ const poller = createPoller({
 
 let demoTimer: number | null = null;
 
-// The real world follows the real chain only, so it pauses in demo mode.
-const worldLink = new WorldLink({
-  language: () => settings.language,
-  onNews(texts) {
-    const text = newsToast(texts, settings.language);
-    if (text && settings.toasts && !settings.demo) hud.toast({ text, tone: "gold", action: { label: tr("toast.openWorld"), url: WORLD_LINK } });
-  },
-});
-
 /** Live and demo data never share a machine, so demo work can never reach live totals. */
 function startSource() {
   poller.stop();
@@ -94,8 +83,6 @@ function startSource() {
   const now = Date.now();
   machine = new PetMachine(now, machineConfig());
   director = new Director(now);
-  if (settings.demo) worldLink.stop();
-  else worldLink.start();
   if (settings.demo) {
     const startedAt = now;
     const feed = () => {
@@ -167,6 +154,7 @@ desktop.onSettings((raw) => {
 });
 desktop.onTrayAction((action) => {
   if (action === "details") setPanel(true);
+  if (action === "world") desktop.openUrl(WORLD_URL);
   if (action === "demo") change({ demo: !settings.demo });
 });
 
@@ -289,7 +277,7 @@ function contextMenu(): MenuItems {
   });
   return [
     { text: tr("menu.details"), action: () => setPanel(true) },
-    { text: tr("menu.world"), action: () => desktop.openWorld() },
+    { text: tr("menu.world"), action: () => desktop.openUrl(WORLD_URL) },
     {
       text: tr("menu.size"),
       items: [...SCALE_PRESETS.map(size), { item: "Separator" }, { text: tr("menu.sizeCustom"), action: () => desktop.openSettings() }],
@@ -395,7 +383,6 @@ function refreshHud(now: number, force = false) {
   // Text refreshes twice a second; showing or hiding the bubble happens at once.
   if (!force && now - hudAt < 500 && showBubble === bubbleShown && showLive === liveButton.visible) return;
   hudAt = now;
-  const opening = showBubble && !bubbleShown;
   bubbleShown = showBubble;
   const lang = settings.language;
   const state = machine.state;
@@ -408,15 +395,7 @@ function refreshHud(now: number, force = false) {
     settings: tr("panel.settings"),
     close: tr("panel.close"),
   });
-  hud.setBubble(showBubble ? withWorld(bubbleContent(state, now, lang), opening) : null);
-}
-
-/** Adds the world's line to the bubble; the save is re-read when the bubble opens. */
-function withWorld(bubble: BubbleContent, opening: boolean): BubbleContent {
-  if (settings.demo) return bubble;
-  const world = opening ? worldLink.refresh() : worldLink.state;
-  if (!world) return bubble;
-  return { ...bubble, rows: [...bubble.rows, { label: tr("bubble.world"), value: worldSummary(world, settings.language) }] };
+  hud.setBubble(showBubble ? bubbleContent(state, now, lang) : null);
 }
 
 let regionsKey = "";

@@ -13,6 +13,8 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 
 export const defaultFetch: FetchLike = (input, init) => fetch(input, init);
 
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
 export class BusyError extends FeedError {
   constructor(readonly retryAfterMs: number) {
     super(`API busy, retry in ${retryAfterMs} ms`);
@@ -51,15 +53,17 @@ export interface SettlementRead {
 
 /**
  * Reads settlements newer than round `after`, paging back through the feed
- * until it reaches that round or `maxPages` pages have been read.
+ * until it reaches that round or `maxPages` pages have been read. A long
+ * catch-up waits between its later pages, to stay inside the API's rate limit.
  */
-export async function readSettlements(fetchImpl: FetchLike, after: number | null, maxPages = 12): Promise<SettlementRead> {
+export async function readSettlements(fetchImpl: FetchLike, after: number | null, maxPages = 12, pause: (ms: number) => Promise<void> = wait): Promise<SettlementRead> {
   const turns: Turn[] = [];
   let cursor: string | null = null;
   let installationId = "";
   let release = "";
   let reachedBack = after === null;
   for (let page = 0; page < maxPages; page++) {
+    if (page >= 4) await pause(300);
     const body: EventsPage = parseEventsPage(await getJson(fetchImpl, eventsPath("protocol", page === 0 ? 40 : 100, cursor)));
     if (installationId && body.installationId !== installationId) throw new FeedError("installation changed while paging");
     if (release && body.release !== release) throw new FeedError("release changed while paging");
@@ -157,8 +161,6 @@ export interface CommunityOptions {
   /** Waits between pages after the first few, to stay inside the API's rate limit. */
   pause?: (ms: number) => Promise<void>;
 }
-
-const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
  * Real Squeekchain community activity since `since`, newest first (players:

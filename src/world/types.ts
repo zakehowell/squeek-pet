@@ -138,7 +138,7 @@ export interface DiaryEntry {
   sim?: boolean;
 }
 
-/** Something worth a toast on the desktop pet. */
+/** Something worth a toast on the World page. */
 export interface WorldNews {
   turn: string;
   to: number;

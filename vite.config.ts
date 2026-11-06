@@ -3,9 +3,11 @@ import { defineConfig } from "vitest/config";
 
 const page = (name: string) => fileURLToPath(new URL(name, import.meta.url));
 
-// Tauri serves the built pages from dist/. preview.html (the pose gallery) is
-// served by the dev server only and is not part of the app. The dev server port is fixed because
-// src-tauri/tauri.conf.json points devUrl at it.
+// Tauri serves the built pages from dist/. preview.html (the pose gallery) and
+// world.html (Squeek Pet World, a web page on squeekpulse.xyz; see
+// vite.world.config.ts) are served by the dev server only and are not part of
+// the app. The dev server port is fixed because src-tauri/tauri.conf.json
+// points devUrl at it.
 export default defineConfig({
   clearScreen: false,
   server: { host: "127.0.0.1", port: 1420, strictPort: true },
@@ -18,7 +20,6 @@ export default defineConfig({
         pet: page("index.html"),
         hud: page("hud.html"),
         settings: page("settings.html"),
-        world: page("world.html"),
       },
     },
   },

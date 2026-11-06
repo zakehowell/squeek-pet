@@ -3,11 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
-    <title>Squeek Pet World</title>
+    <title>Squeek Pet World · dev</title>
+    <style>
+      /* Stand-ins for the squeekpulse.xyz page around the World. */
+      body {
+        margin: 0;
+        background: #f3eedc;
+        color: #213b2e;
+        font: 12px/1.5 system-ui, sans-serif;
+      }
+      .dev-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 14px 24px;
+        border-bottom: 2px solid #213b2e;
+        background: #fffcf2;
+      }
+      .dev-top h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+      .dev-top button {
+        font: inherit;
+        padding: 3px 8px;
+        border: 2px solid #213b2e;
+        background: #fffcf2;
+        box-shadow: 2px 2px 0 0 #213b2e;
+        cursor: pointer;
+      }
+      main {
+        max-width: 1500px;
+        margin: auto;
+        padding: 24px 16px 40px;
+      }
+    </style>
   </head>
   <body>
-    <div id="world" class="app"></div>
-    <script type="module" src="/src/world-main.ts"></script>
+    <header class="dev-top"><h1>Squeek Pet World</h1><button id="lang" type="button">中文</button></header>
+    <main><div id="world"></div></main>
+    <script type="module" src="/src/world-dev.ts"></script>
   </body>
 </html>

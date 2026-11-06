@@ -1,7 +1,6 @@
 // Desktop shell for Squeek Pet: a transparent, always-on-top pet window that
-// lets clicks through everywhere except the pet, a tray menu, a settings
-// window and the Squeek World window. All wheel data handling lives in the web
-// front end.
+// lets clicks through everywhere except the pet, a tray menu, and a settings
+// window. All wheel data handling lives in the web front end.
 
 mod hud_position;
 
@@ -23,7 +22,6 @@ use tauri_plugin_window_state::{StateFlags, WindowExt};
 const PET: &str = "pet";
 const HUD: &str = "hud";
 const SETTINGS: &str = "settings";
-const WORLD: &str = "world";
 /// How often the pointer is checked against the pet's clickable areas.
 const CURSOR_POLL: Duration = Duration::from_millis(33);
 
@@ -365,13 +363,7 @@ fn resize_pet(
 /// stays blank white and the whole app hangs (tauri-apps/wry#583).
 #[tauri::command]
 async fn open_settings(app: AppHandle) -> Result<(), String> {
-    show_window(&app, &SETTINGS_WINDOW).map_err(|e| e.to_string())
-}
-
-/// Async for the same reason as `open_settings`.
-#[tauri::command]
-async fn open_world(app: AppHandle) -> Result<(), String> {
-    show_window(&app, &WORLD_WINDOW).map_err(|e| e.to_string())
+    show_settings(&app).map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -402,116 +394,36 @@ fn toggle_pet(app: &AppHandle) {
     set_pet_visible(app, !PET_VISIBLE.load(Ordering::Relaxed));
 }
 
-/// A decorated app window opened from the menus: settings, or Squeek World.
-struct WindowSpec {
-    label: &'static str,
-    url: &'static str,
-    title: &'static str,
-    size: (f64, f64),
-    min_size: (f64, f64),
-}
-
-const SETTINGS_WINDOW: WindowSpec = WindowSpec {
-    label: SETTINGS,
-    url: "settings.html",
-    title: "Squeek Pet",
-    size: (420.0, 700.0),
-    min_size: (360.0, 480.0),
-};
-
-const WORLD_WINDOW: WindowSpec = WindowSpec {
-    label: WORLD,
-    url: "world.html",
-    title: "Squeek Pet World",
-    size: (1120.0, 800.0),
-    min_size: (380.0, 520.0),
-};
-
-/// Room kept between a new window and the edges of the screen's work area.
-const SCREEN_MARGIN: f64 = 24.0;
-/// What a title bar and borders add to a window's content height, about.
-const FRAME_HEIGHT: f64 = 40.0;
-
-/// A new window's content size and outer position, in logical pixels: its
-/// usual size, shrunk to fit `area` (x, y, width, height) with a margin, and
-/// centred in it. A 1080p laptop at 150% has only about 1280×672 to share, so
-/// the World window's usual 1120×800 would hang below the taskbar there.
-fn fit_in_work_area(
-    size: (f64, f64),
-    min_size: (f64, f64),
-    area: (f64, f64, f64, f64),
-) -> (f64, f64, f64, f64) {
-    let (x, y, width, height) = area;
-    let w = size.0.min(width - 2.0 * SCREEN_MARGIN).max(min_size.0);
-    let h = size
-        .1
-        .min(height - 2.0 * SCREEN_MARGIN - FRAME_HEIGHT)
-        .max(min_size.1);
-    let left = x + ((width - w) / 2.0).max(0.0);
-    let top = y + ((height - h - FRAME_HEIGHT) / 2.0).max(0.0);
-    (w, h, left, top)
-}
-
-/// Shows a window, creating it if needed. Never call this on the main thread
-/// (commands without `async`, menu and window event handlers): see
-/// `open_settings`. `restore_window_geometry` on the other hand must run on
-/// the main thread once the window exists; see below.
-fn show_window(app: &AppHandle, spec: &WindowSpec) -> tauri::Result<()> {
-    // Two quick requests must not both try to create a window.
+/// Shows the settings window, creating it if needed. Never call this on the
+/// main thread (commands without `async`, menu and window event handlers):
+/// see `open_settings`. `restore_window_geometry` on the other hand must run
+/// on the main thread once the window exists; see below.
+fn show_settings(app: &AppHandle) -> tauri::Result<()> {
+    // Two quick requests must not both try to create the window.
     static OPENING: Mutex<()> = Mutex::new(());
     let _opening = OPENING.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some(window) = app.get_webview_window(spec.label) {
+    if let Some(window) = app.get_webview_window(SETTINGS) {
         window.unminimize()?;
         window.show()?;
         return window.set_focus();
     }
-    let builder = WebviewWindowBuilder::new(app, spec.label, WebviewUrl::App(spec.url.into()))
-        .title(spec.title)
-        .min_inner_size(spec.min_size.0, spec.min_size.1);
-    let builder = match app.primary_monitor()? {
-        Some(monitor) => {
-            let scale = monitor.scale_factor();
-            let area = monitor.work_area();
-            let (w, h, x, y) = fit_in_work_area(
-                spec.size,
-                spec.min_size,
-                (
-                    area.position.x as f64 / scale,
-                    area.position.y as f64 / scale,
-                    area.size.width as f64 / scale,
-                    area.size.height as f64 / scale,
-                ),
-            );
-            builder.inner_size(w, h).position(x, y)
-        }
-        None => builder.inner_size(spec.size.0, spec.size.1).center(),
-    };
-    let window = builder.build()?;
+    let window = WebviewWindowBuilder::new(app, SETTINGS, WebviewUrl::App("settings.html".into()))
+        .title("Squeek Pet")
+        .inner_size(420.0, 700.0)
+        .min_inner_size(360.0, 480.0)
+        .center()
+        .build()?;
     // Restore on the main thread. The window-state plugin keeps its cache
     // locked while restore_state waits for the main thread to move the window,
     // and the main thread locks the same cache when it announces a new window.
     // Restoring from this thread deadlocked the whole app on Windows.
     let restored = window.clone();
-    let label = spec.label;
     window.run_on_main_thread(move || {
         if let Err(error) = restore_window_geometry(&restored) {
-            eprintln!("[squeek-pet] could not restore the {label} window: {error}");
+            eprintln!("[squeek-pet] could not restore the settings window: {error}");
         }
         let _ = restored.set_focus();
     })
-}
-
-/// Menu handlers run on the main thread, so windows open from another one.
-fn show_window_soon(app: &AppHandle, spec: &'static WindowSpec) {
-    let app = app.clone();
-    std::thread::spawn(move || {
-        if let Err(error) = show_window(&app, spec) {
-            eprintln!(
-                "[squeek-pet] could not open the {} window: {error}",
-                spec.label
-            );
-        }
-    });
 }
 
 /// Creates the pet window in the bottom-right corner of the primary screen.
@@ -603,13 +515,23 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
                 set_pet_visible(app, true);
                 let _ = app.emit_to(PET, "pet://menu", "details");
             }
+            // Squeek Pet World is a web page; the pet window opens it in the browser.
+            "world" => {
+                let _ = app.emit_to(PET, "pet://menu", "world");
+            }
             // The pet window owns the setting; it updates the check mark back.
             "demo" => {
                 let _ = app.emit_to(PET, "pet://menu", "demo");
             }
-            // Menu handlers run on the main thread; see show_window.
-            "world" => show_window_soon(app, &WORLD_WINDOW),
-            "settings" => show_window_soon(app, &SETTINGS_WINDOW),
+            // Menu handlers run on the main thread; see show_settings.
+            "settings" => {
+                let app = app.clone();
+                std::thread::spawn(move || {
+                    if let Err(error) = show_settings(&app) {
+                        eprintln!("[squeek-pet] could not open settings: {error}");
+                    }
+                });
+            }
             "quit" => app.exit(0),
             _ => {}
         });
@@ -710,7 +632,6 @@ pub fn run() {
                 .with_denylist(&[HUD])
                 .skip_initial_state(PET)
                 .skip_initial_state(SETTINGS)
-                .skip_initial_state(WORLD)
                 .build(),
         )
         .plugin(tauri_plugin_autostart::init(
@@ -730,7 +651,6 @@ pub fn run() {
             hud_action,
             set_pet_always_on_top,
             open_settings,
-            open_world,
             hide_pet,
             quit_app
         ])
@@ -763,7 +683,7 @@ pub fn run() {
         .expect("error while building Squeek Pet");
 
     app.run(|app, event| {
-        // Closing the settings or World window must not quit the pet.
+        // Closing the settings window must not quit the pet.
         if let RunEvent::ExitRequested {
             code: None, api, ..
         } = event
@@ -812,45 +732,5 @@ mod tests {
         let second_restart = bottom_right_origin(first_restart, scene_size, scene_size);
         assert_eq!(first_restart, migrated);
         assert_eq!(second_restart, migrated);
-    }
-
-    #[test]
-    fn a_new_window_keeps_its_size_on_a_big_screen_and_is_centred() {
-        let (w, h, x, y) = fit_in_work_area(
-            WORLD_WINDOW.size,
-            WORLD_WINDOW.min_size,
-            (0.0, 0.0, 1920.0, 1032.0),
-        );
-        assert_eq!((w, h), (1120.0, 800.0));
-        assert_eq!((x, y), (400.0, 96.0));
-    }
-
-    #[test]
-    fn a_new_window_shrinks_to_fit_a_small_screen_above_the_taskbar() {
-        // 1920×1080 at 150% with a 48 px taskbar: 1280×672 logical pixels.
-        let area = (0.0, 0.0, 1280.0, 672.0);
-        let (w, h, x, y) = fit_in_work_area(WORLD_WINDOW.size, WORLD_WINDOW.min_size, area);
-        assert_eq!((w, h), (1120.0, 584.0));
-        assert!(y >= SCREEN_MARGIN && y + h + FRAME_HEIGHT <= area.3 - SCREEN_MARGIN);
-        assert_eq!(x, 80.0);
-        // A second screen to the left of the main one has negative coordinates.
-        let (_, h, x, y) = fit_in_work_area(
-            SETTINGS_WINDOW.size,
-            SETTINGS_WINDOW.min_size,
-            (-1280.0, 0.0, 1280.0, 672.0),
-        );
-        assert_eq!(h, 584.0);
-        assert_eq!((x, y), (-850.0, 24.0));
-    }
-
-    #[test]
-    fn a_new_window_never_shrinks_below_its_minimum() {
-        let (w, h, x, y) = fit_in_work_area(
-            WORLD_WINDOW.size,
-            WORLD_WINDOW.min_size,
-            (0.0, 0.0, 360.0, 480.0),
-        );
-        assert_eq!((w, h), WORLD_WINDOW.min_size);
-        assert_eq!((x, y), (0.0, 0.0));
     }
 }

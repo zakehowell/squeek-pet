@@ -48,7 +48,7 @@ jobs:
           if ($files.Count -ne 2) { throw "expected one .msi and one -setup.exe, found $($files.Count)" }
           $files | ForEach-Object { "{0}  {1:N1} MB  {2}" -f (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower(), ($_.Length / 1MB), $_.Name }
 
-      - name: Install with the setup program, start the pet, open settings and the World, take screenshots
+      - name: Install with the setup program, start the pet, open settings, take screenshots
         shell: pwsh
         run: |
           $setup = Get-ChildItem src-tauri\target\release\bundle\nsis\*-setup.exe | Select-Object -First 1
@@ -67,7 +67,7 @@ jobs:
             $g.Dispose(); $shot.Dispose()
             "Saved $name ($($screen.Width)x$($screen.Height))"
           }
-          # Opens WebView2's DevTools port so the window checks can drive the pet
+          # Opens WebView2's DevTools port so the settings check can drive the pet
           # page. The runner is elevated, and WebView2 ignores the
           # WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS variable and per-user policies
           # for elevated apps, so this uses the machine-wide policy.
@@ -82,14 +82,9 @@ jobs:
           $settingsOk = $LASTEXITCODE -eq 0
           Start-Sleep -Seconds 2
           Save-Screenshot "windows-settings.png"
-          node .github/scripts/check-world-window.mjs
-          $worldOk = $LASTEXITCODE -eq 0
-          Start-Sleep -Seconds 2
-          Save-Screenshot "windows-world.png"
           Stop-Process -Id $pet.Id -ErrorAction SilentlyContinue
           Remove-ItemProperty -Path $policy -Name $exe.Name
           if (-not $settingsOk) { throw "the settings window check failed; see windows-settings.png" }
-          if (-not $worldOk) { throw "the World window check failed; see windows-world.png" }
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -107,6 +102,5 @@ jobs:
           path: |
             windows-desktop.png
             windows-settings.png
-            windows-world.png
           if-no-files-found: ignore
           retention-days: 14

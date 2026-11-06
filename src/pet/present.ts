@@ -8,9 +8,9 @@ import type { Provenance } from "../core/types";
 
 export const EXPLORER = "https://eth-sepolia.blockscout.com";
 export const PULSE_URL = "https://squeekpulse.xyz/";
+/** Squeek Pet World is a web game on the Squeek Pulse site; only the pet lives on the desktop. */
+export const WORLD_URL = "https://squeekpulse.xyz/world/";
 export const DOCS_URL = "https://docs.squeekchain.com/developers/api/";
-/** A toast action that opens Squeek Pet World instead of a web page. */
-export const WORLD_LINK = "squeek-pet:world";
 
 export type BadgeTone = "live" | "label" | "offline";
 export interface Badge {

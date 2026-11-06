@@ -8,7 +8,7 @@ When the real wheel turns, the pet wakes up and runs at the wheel's measured RPM
 
 Normally there is only a small hamster in the corner of the screen. Hover it for a status bubble, double-click for a mini panel.
 
-New, and not in the 0.1.2 installers yet: **[Squeek Pet World](#squeek-pet-world)**, a little world with a home, adventures and a guild that moves only when the real hamster's work is settled on chain.
+New: **[Squeek Pet World](#squeek-pet-world)**, a little web game at [squeekpulse.xyz/world](https://squeekpulse.xyz/world/) with a home, adventures and a guild. It moves only when the real hamster's work is settled on chain. Only the pet is a desktop app; the game is played in the browser, and from the next release the pet's menu opens it.
 
 ![Squeektoshi asleep, waking, running, eating, celebrating a settled block, enjoying a head pat, waiting for data, and grumpy](docs/screenshots/hamster.png)
 
@@ -20,7 +20,7 @@ New, and not in the 0.1.2 installers yet: **[Squeek Pet World](#squeek-pet-world
 
 Everything comes from one read-only request, `GET https://api.squeekchain.com/v1/status` (schema version 1), polled every 2 to 10 seconds depending on the performance setting.
 
-The "Live on X" button is the one exception: when it appears it also reads Squeek Chain's live descriptor, `https://media.squeekchain.com/live/current.json`, at most every 30 seconds (see [Watching the live stream](#watching-the-live-stream)). Squeek Pet World reads more of the same public API; see [Squeek Pet World](#squeek-pet-world).
+The "Live on X" button is the one exception: when it appears it also reads Squeek Chain's live descriptor, `https://media.squeekchain.com/live/current.json`, at most every 30 seconds (see [Watching the live stream](#watching-the-live-stream)). Squeek Pet World is a web page, so it reads the API in your browser, not through the pet; see [Squeek Pet World](#squeek-pet-world).
 
 | API field | What the pet does |
 | --- | --- |
@@ -54,8 +54,8 @@ Requests are plain GETs, so the browser engine sends no CORS preflight. Conditio
 | Rub back and forth over the head | Happy eyes and a heart (head pat). |
 | Drag | Moves the pet; the position is remembered, including on a second screen. |
 | Double-click | Mini panel: wheel, speed, today's distance, measured work, work since launch, settled blocks with a transaction link. |
-| Right-click | Menu: details, Squeek Pet World, size (50% to 150%, or a custom size in Settings), sounds, demo mode, Squeek Pulse, settings, hide, quit. |
-| Tray / menu bar icon | Show or hide, details, Open Squeek Pet World, demo mode, settings, quit. |
+| Right-click | Menu: details, Squeek Pet World (opens the web game in your browser), size (50% to 150%, or a custom size in Settings), sounds, demo mode, Squeek Pulse, settings, hide, quit. |
+| Tray / menu bar icon | Show or hide, details, Open Squeek Pet World (in your browser), demo mode, settings, quit. |
 | Browser page (Pat / Feed / Wake) | The hosted build adds three buttons, or press `P`, `F` or `W`. Pat gives a heart, Feed gives a small treat, Wake stretches without changing the wheel state. Presentation only. |
 
 Everything outside the hamster, wheel and nest is click-through, so the pet never blocks the apps underneath.
@@ -85,9 +85,9 @@ A scripted 60-second loop for trying the animations while the real hamster rests
 
 A little world that grows with the real hamster: a home with garden beds and buildings, adventures, a log of every round, and a guild that fights a weekly boss together with everyone else. It moves only when SqueekCore settles a round of Squeektoshi's work on Sepolia, about every ten minutes, so no amount of clicking can speed it up.
 
-Open it from the pet's right-click menu or the tray (**Open Squeek Pet World**), or from a World toast. In a browser it is `world.html`, next to the pet page.
+It is a web game at **[squeekpulse.xyz/world](https://squeekpulse.xyz/world/)**, a page of the Squeek Pulse site, in English and Chinese, on computers and phones. Open it in any browser, or from the pet's right-click menu or tray (**Open Squeek Pet World**). Only the pet is a desktop app. The game's code lives in this repository (`src/world/`) and is built into one script for the site with `npm run build:world` (see [For developers](#for-developers)). It draws in the site's pixel style: its drawings are turned into pixel art in the browser, and it uses the site's fonts and colours.
 
-![The home tab in the trial world: ripe crops in the garden beds, the real hamster resting beside them, and the bag](docs/screenshots/world-home.png)
+![Squeek Pet World on a local build of squeekpulse.xyz/world: the trial world's ripe crops, the bag, and the Squeek Pulse sidebar](docs/screenshots/world-home.png)
 
 | Tab | What you do |
 | --- | --- |
@@ -101,25 +101,22 @@ Open it from the pet's right-click menu or the tray (**Open Squeek Pet World**),
 - One turn is one settled SqueekCore batch: a `system.settlement_completed` event in `GET /v1/events?category=protocol`, once it has 12 confirmations. A busy round pays 1 data bean per 10 settled work units, plus building bonuses. A resting round, with no work, gives dream dew. Crops grow with work, with rest, or with both, depending on the plant.
 - Every settled turn pays once. A new world starts on the newest settled round and is not paid for the rounds before it. Rounds the feed no longer reaches become a marked gap that gives nothing, and a reorganised settlement is replaced and replayed.
 - The world on screen is always replayed from the settled turns and your choices, so a number edited in storage can't turn into progress.
-- Data beans exist only on this device. They are free, can't be bought or sold, and are not a token. The SQB token in the whitepaper is a later step and is not part of the app.
-- The save stays in local storage. **Export save** and **Import save** copy it as text, for a backup or another computer.
+- Data beans exist only in your browser. They are free, can't be bought or sold, and are not a token. The SQB token in the whitepaper is a later step and is not part of the game.
+- The save stays in this browser's local storage. **Export save** and **Import save** copy it as text, for a backup or another browser.
+- Nothing runs while no World tab is open. Opening the page catches up on about the last two weeks of settled rounds (up to 40 pages of the event feed, read with pauses to stay inside the API's rate limit). Rounds older than that become a marked gap that gives nothing.
 - The **trial world** runs on made-up rounds so every rule can be tried in minutes (+1 busy round, +6 resting rounds, +1 day). It has its own save and always shows **TRIAL · SIMULATED**; nothing in it is real or settled.
 
 **The weekly boss**
 
-Seasons start every Monday at 12:00 UTC. Everyone fights the same boss, and each copy of the app works out its HP from public data on its own, with no game server: the hamster's settled work this season (`GET /v1/settlements?range=30d`), community activity on SqueekChain such as NFT deposits, merges and staking (`GET /v1/events?category=players`), and the hamster's milestones (`GET /v1/events?category=measurement`). Community activity can take off at most 30% of the boss's HP and milestones at most 20%, so the hamster's own work always does at least half. Beating the boss upgrades the season's chest one tier.
+Seasons start every Monday at 12:00 UTC. Everyone fights the same boss, and each browser works out its HP from public data on its own, with no game server: the hamster's settled work this season (`GET /v1/settlements?range=30d`), community activity on SqueekChain such as NFT deposits, merges and staking (`GET /v1/events?category=players`), and the hamster's milestones (`GET /v1/events?category=measurement`). Community activity can take off at most 30% of the boss's HP and milestones at most 20%, so the hamster's own work always does at least half. Beating the boss upgrades the season's chest one tier.
 
-![The guild tab in the real world, read live on 2026-11-05: community activity has reached its 30% share of the boss's HP](docs/screenshots/world-guild.png)
+![The guild tab in the real world, read live on 2026-11-06: community activity and milestones have reached their full shares, and the boss has 19,006 of 50,000 HP left](docs/screenshots/world-guild.png)
 
-**On the pet**
-
-Opening the World once founds your real world. From then on the pet keeps it in step every 2 minutes, even with the World window closed: its status bubble gets a World line (crops ready to pick, the trip's progress, a chest to open, or your data beans), and a toast tells what new turns brought, with an **Open World** button. Demo mode pauses this.
-
-![The pet's status bubble with its World line](docs/screenshots/pet-world-bubble.png)
+The pet itself stays about the real wheel: its bubble and toasts don't show the World.
 
 ## Safety and privacy
 
-- Read-only: public endpoints only (the status API, the live descriptor while the "Live on X" button shows, and for Squeek Pet World the event feed and settlement summaries), no wallet connection, no private keys, no signing, no transactions.
+- Read-only: the pet reads only public endpoints (the status API, and the live descriptor while the "Live on X" button shows); Squeek Pet World, in the browser, also reads the public event feed and settlement summaries. No wallet connection, no private keys, no signing, no transactions.
 - No accounts, analytics or personal data. Settings stay in local storage on the device.
 - Links open only Squeek Pulse, the SqueekChain docs, the Sepolia explorer (`eth-sepolia.blockscout.com`) and @squeekchain's live stream on X (`x.com/squeekchain` and `x.com/i/broadcasts/…`), enforced by the app's capability file.
 - API values reach the screen only as text, never as HTML.
@@ -176,7 +173,9 @@ npm run dev            # browser preview at http://127.0.0.1:1420 (?demo=1, ?lan
 npm run desktop        # the real desktop pet, in development mode
 ```
 
-`http://127.0.0.1:1420/preview.html` shows every pose side by side, replayed through the real state machine. `http://127.0.0.1:1420/world.html` is Squeek Pet World (`?mode=trial`, `?tab=guild`, `?lang=zh`).
+`http://127.0.0.1:1420/preview.html` shows every pose side by side, replayed through the real state machine. `http://127.0.0.1:1420/world.html` runs Squeek Pet World on a bare page (`?mode=trial`, `?tab=guild`, `?lang=zh`).
+
+`npm run build:world` builds the World for the site: one script, `dist-world/squeek-world.js`, whose `mountWorld(element, { language })` draws the game inside the element's shadow root, so the page's styles and the game's never mix. Squeek Pulse keeps a copy as `src/vendor/squeek-world.js`; its first line names the commit it was built from.
 
 ![All poses](docs/screenshots/poses.png)
 
@@ -186,26 +185,27 @@ Nothing is code-signed. The Windows installers trigger SmartScreen the first tim
 
 | Check | Result |
 | --- | --- |
-| Unit tests (Vitest) | 146 passing. For the pet: API parsing and validation, Retry-After, backoff, state machine transitions, bean ledger (epochs, resets, caps), offline and clock-skew rules, demo loop, bubble and panel texts in both languages, settings and the pet size layout, the parts of the hamster drawing that the animation needs, the head turning to profile while running, the Wake and Feed reactions, which leave the data untouched, and the live stream descriptor. For Squeek Pet World (53): strict reading of the settlement feed, every settled turn paid exactly once, the same world on every replay, gaps, reorganisations and a new deployment, catching up after being closed, export and import, the shared boss's sums, caps, paging and partial reads, the trial world's separate save, the pet's World line and toasts, and every text in both languages. Plus 11 Rust tests, including how a new window fits a small screen. |
+| Unit tests (Vitest) | 157 passing. For the pet: API parsing and validation, Retry-After, backoff, state machine transitions, bean ledger (epochs, resets, caps), offline and clock-skew rules, demo loop, bubble and panel texts in both languages, settings and the pet size layout, the parts of the hamster drawing that the animation needs, the head turning to profile while running, the Wake and Feed reactions, which leave the data untouched, and the live stream descriptor. For Squeek Pet World (64): strict reading of the settlement feed, every settled turn paid exactly once, the same world on every replay, gaps, reorganisations and a new deployment, catching up after being closed (paced, about two weeks back), export and import, the shared boss's sums, caps, paging and partial reads, the trial world's separate save, turning drawings into pixel art, the tab keys, and every text in both languages. Plus 8 Rust tests. |
 | Type checks | `tsc` strict, app and tests. |
 | Live API | Pet page read the real `/v1/status` on 2026-10-31 (wheel idle, work 62,576, settled block #5,570) and showed it correctly in both languages. |
 | Animations | Every state captured frame by frame through the demo loop. |
 | Desktop build on Linux | `cargo build` and `clippy` clean; the app launched on a virtual X display, placed itself bottom-right and showed the sleeping pet on live data (Linux WebKit, the same engine family as macOS). |
 | Desktop build on macOS | On an Apple Silicon Mac (macOS 26.6): the unit tests and type checks passed, `npm run desktop` compiled in about a minute and launched with no errors, and on 2026-11-01 a release build produced the `.app` (4.1 MiB) and `.dmg` (2.9 MiB) in 79 seconds. The same day a fresh clone of this repository went through `npm ci`, the tests, the type checks and an app-only build in 89 seconds. |
 | Desktop build on Windows | On 2026-11-02 GitHub Actions built this repository on Windows Server 2025 (build 26100, the same build as Windows 11 24H2): the 81 unit tests passed, and a 4 min 34 s release build produced the `-setup.exe` (1.3 MiB) and the `.msi` (1.9 MiB). The `-setup.exe` installed silently, the pet started and was still running 30 seconds later, and a screenshot showed the sleeping hamster above the taskbar in the bottom-right corner, with the desktop visible through its transparent window. This check runs again for every change. |
-| Squeek Pet World | In Chromium, in English and Chinese, light and dark, 1200 and 390 px wide: the trial world played through six simulated days, and on 2026-11-05 the real world founded itself on the newest settled round and read the shared boss live (21,383 of 50,000 HP left). The pet page showed its World line from that save. On Windows, CI opens the World window from the pet the way its menus do and checks that it renders its four tabs inside the screen's work area, and that opening it again reuses the window. |
-| **Not verified yet** | On macOS, what the pet looks like on screen: transparency over the desktop, click-through, drag and the menu bar icon. On Windows, anything done by hand: click-through, drag, the menus and tray icon, bubbles and the details panel, SmartScreen on a real PC, installing from the `.msi`, and Windows 10. Multi-monitor and mixed DPI. Autostart. Squeek Pet World as a desktop window used by hand, on any system, and its toasts on a real desktop. |
+| Squeek Pet World | In Chromium, on a local copy of squeekpulse.xyz with the live site's styles and fonts and the `/world/` page: English and Chinese, 1440, 1200, 1024, 800 and 390 px wide, no sideways scrolling; the trial world played through six simulated days; the keyboard (focus kept across redraws, arrow keys on the tabs, dialogs that keep and return focus); and on 2026-11-06 the real world founded itself on the newest settled round and read the shared boss live from the API (19,006 of 50,000 HP left). |
+| **Not verified yet** | On macOS, what the pet looks like on screen: transparency over the desktop, click-through, drag and the menu bar icon. On Windows, anything done by hand: click-through, drag, the menus and tray icon, bubbles and the details panel, SmartScreen on a real PC, installing from the `.msi`, and Windows 10. Multi-monitor and mixed DPI. Autostart. Squeek Pet World on the deployed squeekpulse.xyz, in Safari and Firefox, and on real phones. |
 
 ## Project layout
 
 ```
 src/core/        API client, schema validation, poller, state machine, demo loop, settings, i18n
-src/pet/         director (state → pose each frame), bubble/panel/toast texts, HUD, the World link
+src/pet/         director (state → pose each frame), bubble/panel/toast texts, HUD
 src/art/         the hamster drawing, the SVG scene around it, and the rig that animates them
-src/world/       Squeek Pet World: the rules as data, the turn engine, feed and ledger, saves, shared boss, texts, art and tabs
+src/world/       Squeek Pet World: the rules as data, the turn engine, feed and ledger, saves, shared boss, texts, art, pixel art and tabs
 src/platform/    the only place that talks to the desktop shell
-src-tauri/       Rust shell: transparent window, click-through, tray, settings and World windows
-world.html       the World page (src/world-main.ts)
+src-tauri/       Rust shell: transparent window, click-through, tray, settings window
+world.html       a bare page for working on Squeek Pet World (src/world-dev.ts)
+vite.world.config.ts   builds the World into one script for squeekpulse.xyz/world
 tests/           Vitest suites, with captured live API responses and event feed pages
 ```
 

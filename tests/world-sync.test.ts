@@ -5,7 +5,7 @@ import { BusyError, mergeNewer, readCommunity, readDays, readFrom, type Communit
 import { bossOf, seasonOf, seasonStart } from "../src/world/season";
 import { addSimDay, addSimTurns, loadSim, resetSim } from "../src/world/sim";
 import { loadSave, worldOf, exportSave, importSave, SAVE_KEYS } from "../src/world/store";
-import { pull, recordChoice } from "../src/world/sync";
+import { CATCH_UP_PAGES, pull, recordChoice } from "../src/world/sync";
 import { PROTOCOL_FIXTURE, eventsPage, fixture, jsonResponse, memoryStorage, settlementEvent } from "./world-helpers";
 
 const protocol = fixture(PROTOCOL_FIXTURE);
@@ -70,6 +70,29 @@ describe("world sync", () => {
     expect(world.frontier).toBe(307);
     const gap = world.diary.find((d) => d.kind === "gap");
     expect(gap).toMatchObject({ from: 201, to: 287 });
+  });
+
+  it("catches up about two weeks of pages after a long absence, pacing the later pages", async () => {
+    const storage = memoryStorage();
+    const founded = await pull({ fetchImpl: feed(), storage, now: NEWEST_AT });
+    storage.setItem(SAVE_KEYS.real, JSON.stringify({ ...founded.save, base: { ...founded.save.base, origin: 200, frontier: 200 } }));
+    // One settlement a page, newest first: round 360 on page 0, 359 on page 1, and so on.
+    const calls: string[] = [];
+    const paged: FetchLike = async (url) => {
+      calls.push(url);
+      const page = Number(/cursor=p(\d+)/.exec(url)?.[1] ?? 0);
+      const round = 360 - page;
+      return jsonResponse(eventsPage([settlementEvent(round, round, 100, NEWEST_AT + round * 600_000, page.toString(16).padStart(2, "0"))], `p${page + 1}`));
+    };
+    const pauses: number[] = [];
+    const result = await pull({ fetchImpl: paged, storage, now: NEWEST_AT, pause: async (ms) => void pauses.push(ms) });
+    expect(calls).toHaveLength(CATCH_UP_PAGES);
+    expect(CATCH_UP_PAGES).toBeGreaterThanOrEqual(40);
+    expect(pauses).toHaveLength(CATCH_UP_PAGES - 4);
+    const world = worldOf(result.save);
+    expect(world.frontier).toBe(360);
+    // Rounds older than the last page read give nothing and are marked.
+    expect(world.diary.find((d) => d.kind === "gap")).toMatchObject({ from: 201, to: 360 - CATCH_UP_PAGES });
   });
 
   it("starts a new timeline when Squeekchain moves to a new deployment", async () => {

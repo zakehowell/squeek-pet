@@ -115,7 +115,7 @@ function membership(v: View, season: number): HTMLElement {
     parts.push(hint(tr(v, "guild.notMember")), h("ul", { class: "guild-picks" }, ...GUILD_ORDER.map((id) => crestCard(v, id, season, tr(v, "guild.joinFor", { n: season })))));
   }
   if (next) {
-    parts.push(h("p", { class: "next-guild" }, art(guildCrest(next), "crest-pic small"), tr(v, "guild.next", { guild: GUILDS[next].name[v.lang] })));
+    parts.push(h("p", { class: "next-guild" }, art(guildCrest(next, "crest tiny"), "crest-pic small"), tr(v, "guild.next", { guild: GUILDS[next].name[v.lang] })));
   } else if (now) {
     parts.push(h("h3", null, tr(v, "guild.joinNext")), h("ul", { class: "guild-picks compact" }, ...GUILD_ORDER.map((id) => crestCard(v, id, season + 1, tr(v, "guild.joinFor", { n: season + 1 })))));
   }
@@ -189,7 +189,7 @@ function chests(v: View, season: number): HTMLElement {
       h(
         "li",
         { class: "chest-ready" },
-        art(chestArt(won.id), "chest-pic small"),
+        art(chestArt(won.id, false, "chest-art tiny"), "chest-pic small"),
         h("span", null, `${won.name[v.lang]} · ${tr(v, "guild.season", { n: s })}`, waiting ? h("small", { class: "muted" }, waiting) : null),
         choiceButton(v, tr(v, "guild.open", { n: s }), { t: "chest", season: s, bossDefeated: beaten === true }, { primary: true, small: true, blocked: waiting }),
       ),

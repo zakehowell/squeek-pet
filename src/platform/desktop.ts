@@ -75,11 +75,6 @@ export const desktop = {
     if (inTauri) quietly(invoke("open_settings"));
     else window.open("/settings.html", "squeek-pet-settings", "width=420,height=680");
   },
-  /** Squeek Pet World: its own window on the desktop, a new tab in a browser. */
-  openWorld() {
-    if (inTauri) quietly(invoke("open_world"));
-    else window.open("/world.html", "squeek-pet-world");
-  },
   openUrl(url: string) {
     if (inTauri) quietly(openExternal(url));
     else window.open(url, "_blank", "noopener");

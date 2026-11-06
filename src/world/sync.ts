@@ -4,9 +4,9 @@ import { mergeTurns } from "./ledger";
 import { loadSave, prune, writeSave, type SaveFile, type StorageLike, safeStorage } from "./store";
 import type { Choice, ChoiceRecord, Turn } from "./types";
 
-// Keeps the real world's save in step with the chain. Both the pet window and
-// the world window call `pull`; merging is idempotent, so it does not matter
-// which one gets there first.
+// Keeps the real world's save in step with the chain. Every open World tab
+// calls `pull`; merging is idempotent, so it does not matter which one gets
+// there first.
 
 export interface PullResult {
   save: SaveFile;
@@ -16,22 +16,26 @@ export interface PullResult {
   reorg: boolean;
 }
 
-/** How far back a reopened world catches up: about four days of settlements. */
-const CATCH_UP_PAGES = 12;
+/**
+ * How far back a reopened world catches up: about two weeks of settlements
+ * (some 140 a day, two protocol events each, 100 events a page). The World is
+ * a web page now, so nothing keeps it in step while no tab is open.
+ */
+export const CATCH_UP_PAGES = 40;
 
 export function foundWorld(origin: number, installation: string, now: number): SaveFile {
   return { v: 1, kind: "real", installation, base: newWorld(origin, now), entries: [], choices: [], seq: 0, updated: now };
 }
 
-export async function pull(options: { fetchImpl?: FetchLike; storage?: StorageLike | null; now?: number } = {}): Promise<PullResult> {
+export async function pull(options: { fetchImpl?: FetchLike; storage?: StorageLike | null; now?: number; pause?: (ms: number) => Promise<void> } = {}): Promise<PullResult> {
   const fetchImpl = options.fetchImpl ?? defaultFetch;
   const storage = options.storage === undefined ? safeStorage() : options.storage;
   const now = options.now ?? Date.now();
   const existing = loadSave("real", storage);
   const after = existing ? (existing.entries.length ? existing.entries[existing.entries.length - 1].to : existing.base.frontier) : null;
-  const read = await readSettlements(fetchImpl, after, CATCH_UP_PAGES);
+  const read = await readSettlements(fetchImpl, after, CATCH_UP_PAGES, options.pause);
 
-  // Re-read just before writing: another window may have saved meanwhile.
+  // Re-read just before writing: another tab may have saved meanwhile.
   let save = loadSave("real", storage) ?? existing;
   if (!save) {
     const origin = read.newest?.to;

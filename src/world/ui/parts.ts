@@ -8,11 +8,11 @@ import type { WorldKind } from "../store";
 import type { Choice, GearId, ResourceId, RouteId, WorldState } from "../types";
 import { art, h, type Child } from "./dom";
 
-// What every part of the World window draws from, and the small widgets they share.
+// What every part of the World page draws from, and the small widgets they share.
 
 export type Tab = "home" | "adventure" | "log" | "guild";
 
-/** Window-only state: nothing here changes the world. */
+/** Page-only state: nothing here changes the world. */
 export interface UiState {
   tab: Tab;
   /** The bed whose seed picker is open. */
@@ -99,12 +99,18 @@ export function plainButton(label: string, onClick: () => void, cls = "btn"): HT
   return button;
 }
 
-/** A segmented picker. */
+/**
+ * A segmented picker. Each option is a toggle button: picking a guild class or
+ * action is a move in the game, so it waits for Enter or Space instead of
+ * following the arrow keys as a radio group would.
+ */
 export function segmented<T extends string>(label: string, value: T, options: readonly [T, string][], onPick: (value: T) => void): HTMLElement {
-  const group = h("div", { class: "segmented", role: "radiogroup", "aria-label": label });
+  const group = h("div", { class: "segmented", role: "group", "aria-label": label });
   for (const [option, text] of options) {
-    const button = h("button", { type: "button", role: "radio", "aria-checked": String(option === value), class: option === value ? "on" : "" }, text);
-    button.addEventListener("click", () => onPick(option));
+    const button = h("button", { type: "button", "aria-pressed": String(option === value), class: option === value ? "on" : "" }, text);
+    button.addEventListener("click", () => {
+      if (option !== value) onPick(option);
+    });
     group.append(button);
   }
   return group;
