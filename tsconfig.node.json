@@ -13,6 +13,7 @@
   },
   "include": [
     "src",
+    "contracts/deploy",
     "tests",
     "vite.config.ts",
     "vite.world.config.ts"

@@ -95,13 +95,14 @@ It is a web game at **[squeekpulse.xyz/world](https://squeekpulse.xyz/world/)**,
 | Adventure | Pick one of five routes, up to two pieces of gear, a snack or a charm. Settled work walks the trip forward; choose a path at the fork and bring home what you found. |
 | Log | What every settled round gave, with a link to its Sepolia transaction, and the world's diary. |
 | Guild | Join one of four guilds for the season, pick a class, plan your move against the weekly boss, then open the season's chest. |
+| Stake, Town | On chain (Sepolia), once the contracts are deployed: see below. |
 
 **How it stays honest**
 
 - One turn is one settled SqueekCore batch: a `system.settlement_completed` event in `GET /v1/events?category=protocol`, once it has 12 confirmations. A busy round pays 1 data bean per 10 settled work units, plus building bonuses. A resting round, with no work, gives dream dew. Crops grow with work, with rest, or with both, depending on the plant.
 - Every settled turn pays once. A new world starts on the newest settled round and is not paid for the rounds before it. Rounds the feed no longer reaches become a marked gap that gives nothing, and a reorganised settlement is replaced and replayed.
 - The world on screen is always replayed from the settled turns and your choices, so a number edited in storage can't turn into progress.
-- Data beans exist only in your browser. They are free, can't be bought or sold, and are not a token. The SQB token in the whitepaper is a later step and is not part of the game.
+- Data beans exist only in your browser. They are free, can't be bought or sold, and are not a token. SQB, the World's token on Sepolia, is separate: see [On chain](#on-chain-sepolia-testnet).
 - The save stays in this browser's local storage. **Export save** and **Import save** copy it as text, for a backup or another browser.
 - Nothing runs while no World tab is open. Opening the page catches up on about the last two weeks of settled rounds (up to 40 pages of the event feed, read with pauses to stay inside the API's rate limit). Rounds older than that become a marked gap that gives nothing.
 - The **trial world** runs on made-up rounds so every rule can be tried in minutes (+1 busy round, +6 resting rounds, +1 day). It has its own save and always shows **TRIAL · SIMULATED**; nothing in it is real or settled.
@@ -112,11 +113,24 @@ Seasons start every Monday at 12:00 UTC. Everyone fights the same boss, and each
 
 ![The guild tab in the real world, read live on 2026-11-06: community activity and milestones have reached their full shares, and the boss has 19,006 of 50,000 HP left](docs/screenshots/world-guild.png)
 
+### On chain (Sepolia testnet)
+
+Once its contracts are deployed and the site passes their addresses in, the World asks players to connect a wallet and adds two tabs. Everything is on the Sepolia testnet; no real money is involved. Each turn of the game stays free and off-chain; only assets and the economy go on chain.
+
+| Tab | What you do |
+| --- | --- |
+| Stake | Stake testnet SQK to earn **SQB**: every 10 work units the hamster settles become 1 SQB, paid by the second over 24 hours to everyone staked, in proportion to their stake. Claim it whenever you like; unstake any time. A faucet gives new players 1,000 test SQK a day. |
+| Town | Buy one of 100 numbered home deeds (an NFT, paid in SQK, each 1% dearer than the last), name it, renovate it with SQB, and place it in your world as an extra garden bed. Buy the season's decorations with SQB. |
+| Guild | Your season's guild is recorded on chain. Send SQB supplies to the weekly boss (10 damage each, on top of the shared HP) for your guild's place on the supplies leaderboard, or found a player guild with SQK. |
+
+Every SQK and SQB spent is burned; there is no treasury. SQB has no premine: it exists only once the hamster works and someone has staked. The game page never sees a key: it reads Sepolia through a public node, every transaction is simulated first and then shown in your wallet, and approvals use one-off signed permits where the wallet supports them. Each wallet has its own world in the browser. The contracts and the deploy page are in [`contracts/`](contracts/README.md).
+
 The pet itself stays about the real wheel: its bubble and toasts don't show the World.
 
 ## Safety and privacy
 
-- Read-only: the pet reads only public endpoints (the status API, and the live descriptor while the "Live on X" button shows); Squeek Pet World, in the browser, also reads the public event feed and settlement summaries. No wallet connection, no private keys, no signing, no transactions.
+- The pet is read-only: it reads only public endpoints (the status API, and the live descriptor while the "Live on X" button shows). No wallet connection, no private keys, no signing, no transactions.
+- Squeek Pet World, in the browser, also reads the public event feed and settlement summaries. Its on-chain part (Sepolia testnet only) connects your browser wallet; the page never sees a key, and every transaction and signature is shown in your wallet first.
 - No accounts, analytics or personal data. Settings stay in local storage on the device.
 - Links open only Squeek Pulse, the SqueekChain docs, the Sepolia explorer (`eth-sepolia.blockscout.com`) and @squeekchain's live stream on X (`x.com/squeekchain` and `x.com/i/broadcasts/…`), enforced by the app's capability file.
 - API values reach the screen only as text, never as HTML.
@@ -175,7 +189,9 @@ npm run desktop        # the real desktop pet, in development mode
 
 `http://127.0.0.1:1420/preview.html` shows every pose side by side, replayed through the real state machine. `http://127.0.0.1:1420/world.html` runs Squeek Pet World on a bare page (`?mode=trial`, `?tab=guild`, `?lang=zh`).
 
-`npm run build:world` builds the World for the site: one script, `dist-world/squeek-world.js`, whose `mountWorld(element, { language })` draws the game inside the element's shadow root, so the page's styles and the game's never mix. Squeek Pulse keeps a copy as `src/vendor/squeek-world.js`; its first line names the commit it was built from, and the site's build keeps that line at the end of the deployed `world.js`, so you can check which commit is live.
+`npm run build:world` builds the World for the site: one script, `dist-world/squeek-world.js`, whose `mountWorld(element, { language, chain })` draws the game inside the element's shadow root, so the page's styles and the game's never mix. `chain` is the World config the deploy page prints (the contracts' addresses and a public Sepolia node); without it the World stays read-only. Squeek Pulse keeps a copy as `src/vendor/squeek-world.js`; its first line names the commit it was built from, and the site's build keeps that line at the end of the deployed `world.js`, so you can check which commit is live.
+
+The contracts, their tests and the deploy page are in `contracts/` ([contracts/README.md](contracts/README.md)). `npm run deploy:page` serves the deploy page at `http://127.0.0.1:1420/contracts/deploy/`. To play the on-chain World locally, run a fork of Sepolia (`npm run node:fork` and `npm run local:deploy` in `contracts/`) and open `world.html?chain=local`.
 
 ![All poses](docs/screenshots/poses.png)
 
@@ -185,7 +201,8 @@ Nothing is code-signed. The Windows installers trigger SmartScreen the first tim
 
 | Check | Result |
 | --- | --- |
-| Unit tests (Vitest) | 157 passing. For the pet: API parsing and validation, Retry-After, backoff, state machine transitions, bean ledger (epochs, resets, caps), offline and clock-skew rules, demo loop, bubble and panel texts in both languages, settings and the pet size layout, the parts of the hamster drawing that the animation needs, the head turning to profile while running, the Wake and Feed reactions, which leave the data untouched, and the live stream descriptor. For Squeek Pet World (64): strict reading of the settlement feed, every settled turn paid exactly once, the same world on every replay, gaps, reorganisations and a new deployment, catching up after being closed (paced, about two weeks back), export and import, the shared boss's sums, caps, paging and partial reads, the trial world's separate save, turning drawings into pixel art, the tab keys, and every text in both languages. Plus 8 Rust tests. |
+| Unit tests (Vitest) | 193 passing. For the pet: API parsing and validation, Retry-After, backoff, state machine transitions, bean ledger (epochs, resets, caps), offline and clock-skew rules, demo loop, bubble and panel texts in both languages, settings and the pet size layout, the parts of the hamster drawing that the animation needs, the head turning to profile while running, the Wake and Feed reactions, which leave the data untouched, and the live stream descriptor. For Squeek Pet World (64): strict reading of the settlement feed, every settled turn paid exactly once, the same world on every replay, gaps, reorganisations and a new deployment, catching up after being closed (paced, about two weeks back), export and import, the shared boss's sums, caps, paging and partial reads, the trial world's separate save, turning drawings into pixel art, the tab keys, and every text in both languages. For the on-chain World and the deploy page (36): the ABI encoder and decoder, reading amounts, the chain config, the live SQB counter, contract errors, names as the shop checks them, deed beds, one world per wallet, guild-war supplies on the boss, the deploy plan and every text in both languages. Plus 8 Rust tests. |
+| Contract tests (Hardhat) | 46 passing on Hardhat's own chain: minting from settled work and its limits and pauses, staking and claiming by the second, permits, deeds, renovations, decorations, guilds and supplies, the faucet, ownership, and that the exported ABIs are current. Plus 3 against the real SqueekCore and SQK on a fork of Sepolia, including minting SQB from a real settlement replayed from its original transaction. |
 | Type checks | `tsc` strict, app and tests. |
 | Live API | Pet page read the real `/v1/status` on 2026-10-31 (wheel idle, work 62,576, settled block #5,570) and showed it correctly in both languages. |
 | Animations | Every state captured frame by frame through the demo loop. |
@@ -193,7 +210,8 @@ Nothing is code-signed. The Windows installers trigger SmartScreen the first tim
 | Desktop build on macOS | On an Apple Silicon Mac (macOS 26.6): the unit tests and type checks passed, `npm run desktop` compiled in about a minute and launched with no errors, and on 2026-11-01 a release build produced the `.app` (4.1 MiB) and `.dmg` (2.9 MiB) in 79 seconds. The same day a fresh clone of this repository went through `npm ci`, the tests, the type checks and an app-only build in 89 seconds. |
 | Desktop build on Windows | On 2026-11-02 GitHub Actions built this repository on Windows Server 2025 (build 26100, the same build as Windows 11 24H2): the 81 unit tests passed, and a 4 min 34 s release build produced the `-setup.exe` (1.3 MiB) and the `.msi` (1.9 MiB). The `-setup.exe` installed silently, the pet started and was still running 30 seconds later, and a screenshot showed the sleeping hamster above the taskbar in the bottom-right corner, with the desktop visible through its transparent window. This check runs again for every change. |
 | Squeek Pet World | In Chromium, on a local copy of squeekpulse.xyz with the live site's styles and fonts and the `/world/` page: English and Chinese, 1440, 1200, 1024, 800 and 390 px wide, no sideways scrolling; the trial world played through six simulated days; the keyboard (focus kept across redraws, arrow keys on the tabs, dialogs that keep and return focus); and on 2026-11-06 the real world founded itself on the newest settled round and read the shared boss live from the API (19,006 of 50,000 HP left). |
-| **Not verified yet** | On macOS, what the pet looks like on screen: transparency over the desktop, click-through, drag and the menu bar icon. On Windows, anything done by hand: click-through, drag, the menus and tray icon, bubbles and the details panel, SmartScreen on a real PC, installing from the `.msi`, and Windows 10. Multi-monitor and mixed DPI. Autostart. Squeek Pet World on the deployed squeekpulse.xyz, in Safari and Firefox, and on real phones. |
+| Squeek Pet World on chain | On 2026-11-06, in Chromium against a local fork of Sepolia, in English and Chinese: the deploy page deployed all six steps from a test wallet (including a declined signature, a reload halfway, and a reload while a transaction waited for a block, which was waited for and not sent again) and its checks passed; the World then ran on those contracts: faucet, staking with a permit, a real settlement replayed and counted, claiming SQB, buying, naming, renovating and placing a deed, a decoration through the approve fallback, joining a guild on chain, supplies on the boss, founding a guild, a declined unstake, switching networks, and disconnecting. |
+| **Not verified yet** | On macOS, what the pet looks like on screen: transparency over the desktop, click-through, drag and the menu bar icon. On Windows, anything done by hand: click-through, drag, the menus and tray icon, bubbles and the details panel, SmartScreen on a real PC, installing from the `.msi`, and Windows 10. Multi-monitor and mixed DPI. Autostart. Squeek Pet World on the deployed squeekpulse.xyz, in Safari and Firefox, and on real phones. The contracts on the real Sepolia (not deployed yet), with real wallets such as MetaMask. |
 
 ## Project layout
 
@@ -202,6 +220,8 @@ src/core/        API client, schema validation, poller, state machine, demo loop
 src/pet/         director (state → pose each frame), bubble/panel/toast texts, HUD
 src/art/         the hamster drawing, the SVG scene around it, and the rig that animates them
 src/world/       Squeek Pet World: the rules as data, the turn engine, feed and ledger, saves, shared boss, texts, art, pixel art and tabs
+src/world/chain/ the World on Sepolia: reads, the wallet, permits, transactions and their errors (no dependencies)
+contracts/       the SQB token, the minter, the World shop and the SQK faucet (Hardhat), and the deploy page
 src/platform/    the only place that talks to the desktop shell
 src-tauri/       Rust shell: transparent window, click-through, tray, settings window
 world.html       a bare page for working on Squeek Pet World (src/world-dev.ts)
@@ -219,7 +239,7 @@ The strongest 15-second clip shows three moments: the real wheel starts and the 
 
 ## Not in this version
 
-Recording clips from the app, a do-not-disturb mode for full-screen apps, random idle wandering, extra skins, and OS-level notifications. For Squeek Pet World: the SQB token and its contracts (designed in the whitepaper, the next step), and leaderboards.
+Recording clips from the app, a do-not-disturb mode for full-screen apps, random idle wandering, extra skins, and OS-level notifications. For Squeek Pet World: leaderboards other than guild supplies, and the contracts on mainnet (Sepolia only for now).
 
 ## License
 
