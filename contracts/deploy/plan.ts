@@ -206,9 +206,14 @@ export function nextStep(progress: Progress, plan: Plan): StepId | null {
   return stepsOf(plan).find((id) => !progress.steps[id]?.done) ?? null;
 }
 
-/** What the World page takes (see src/world/chain/config.ts), once every step is done. */
+/** Everything the World needs is on chain. Filling the faucet can come later: it only takes SQK. */
+export function deployed(progress: Progress, plan: Plan): boolean {
+  return stepsOf(plan).every((id) => id === "fund" || !!progress.steps[id]?.done);
+}
+
+/** What the World page takes (see src/world/chain/config.ts), once the contracts are deployed. */
 export function worldConfig(progress: Progress, plan: Plan, rpcUrl = PUBLIC_RPC): ChainConfig | null {
-  if (nextStep(progress, plan) !== null) return null;
+  if (!deployed(progress, plan)) return null;
   const at = (id: StepId) => progress.steps[id]?.address;
   return readChainConfig({
     chainId: SEPOLIA_CHAIN_ID,

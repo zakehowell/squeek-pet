@@ -5,6 +5,7 @@ import {
   DEFAULT_SETTINGS,
   OFFICIAL,
   SEASON_ONE_START,
+  deployed,
   nextStep,
   progressKey,
   readProgress,
@@ -110,8 +111,10 @@ describe("deploy progress", () => {
     expect(nextStep(progress(all), planOf())).toBeNull();
   });
 
-  it("hands the World page a config it accepts, only when everything is done", () => {
-    expect(worldConfig(progress({ ...all, fund: {} }), planOf())).toBeNull();
+  it("hands the World page a config it accepts once the contracts are deployed", () => {
+    expect(worldConfig(progress({ ...all, faucet: {} }), planOf())).toBeNull();
+    expect(deployed(progress({ ...all, fund: {} }), planOf())).toBe(true);
+    expect(worldConfig(progress({ ...all, fund: {} }), planOf())).toEqual(worldConfig(progress(all), planOf()));
     const config = worldConfig(progress(all), planOf());
     expect(config).toEqual({
       chainId: 11155111,

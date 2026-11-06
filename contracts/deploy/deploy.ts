@@ -12,6 +12,7 @@ import {
   PUBLIC_RPC,
   SEASON_ONE_START,
   configText,
+  deployed,
   nextStep,
   progressKey,
   readProgress,
@@ -37,6 +38,8 @@ import { t, type Lang, type TextKey } from "./text";
 
 type Status = "todo" | "wallet" | "mining" | "done" | "failed" | "lost";
 type Check = { ok: boolean | null; text: string };
+/** A result check, kept as a text key so it follows the language switch. */
+type Result = { ok: boolean | null; key: TextKey; values?: Record<string, string> };
 
 const ERC20 = ["function balanceOf(address) view returns (uint256)", "function transfer(address to, uint256 amount) returns (bool)"];
 const query = new URLSearchParams(location.search);
@@ -57,7 +60,7 @@ const state = {
   status: {} as Partial<Record<StepId, Status>>,
   busy: false,
   error: null as { step: StepId | null; text: string } | null,
-  results: null as Check[] | null,
+  results: null as Result[] | null,
   copied: false,
 };
 if (state.lang !== "zh" && state.lang !== "en") state.lang = "en";
@@ -346,7 +349,7 @@ async function resume(provider: BrowserProvider) {
     }
   }
   renderAll();
-  if (nextStep(progress, p) === null) await verify();
+  if (deployed(progress, p)) await verify();
 }
 
 /** A step whose transaction went missing (a wallet "speed up" replaces the hash): did it happen anyway? */
@@ -430,6 +433,10 @@ async function runStep(step: StepId, provider: BrowserProvider, signer: JsonRpcS
     }
     if (current !== ZeroAddress) throw new StepError("err.minterTaken");
   }
+  if (step === "fund" && p.faucet) {
+    const have = (await token(OFFICIAL.sqk, provider).balanceOf(progress.account)) as bigint;
+    if (have < p.faucet.fund) throw new StepError("err.fundShort", { have: formatAmount(have), need: formatAmount(p.faucet.fund) });
+  }
   state.status[step] = "wallet";
   renderDeploy();
   const tx = await send(step, signer, p, progress, record);
@@ -473,7 +480,6 @@ async function deployAll() {
       await runStep(current, provider, signer, p, progress);
       renderAll();
     }
-    await verify();
   } catch (error) {
     // Declined or never sent: still to do. Sent and failed (or unknown): shown as failed.
     if (current) state.status[current] = state.status[current] === "wallet" && !progress.steps[current]?.hash ? "todo" : "failed";
@@ -481,6 +487,7 @@ async function deployAll() {
   } finally {
     state.busy = false;
     renderAll();
+    // Settles anything left, refreshes balances and checks the result (see resume).
     void refresh();
   }
 }
@@ -514,31 +521,47 @@ function explain(error: unknown): string {
 
 // ---- checking the result ------------------------------------------------------------
 
-async function verify() {
+let verifying: Promise<void> | null = null;
+let verifiedFor = "";
+
+/** Checks the deployed contracts once per state of the steps (a reload checks again). */
+function verify(): Promise<void> {
   const progress = state.progress;
   const p = plan();
-  if (!progress || !p || !state.session || nextStep(progress, p) !== null) return;
-  const provider = new BrowserProvider(state.session.provider);
+  if (!progress || !p || !state.session || !deployed(progress, p)) return Promise.resolve();
+  const key = JSON.stringify(progress.steps);
+  if (verifying) return verifying;
+  if (state.results && verifiedFor === key) return Promise.resolve();
+  verifying = check(progress, p, state.session)
+    .then(() => void (verifiedFor = key))
+    .finally(() => (verifying = null));
+  return verifying;
+}
+
+async function check(progress: Progress, p: Plan, session: WalletSession) {
+  const provider = new BrowserProvider(session.provider);
   const at = (id: StepId) => addressOf(progress, id)!;
   const same = (a: unknown, b: string) => String(a).toLowerCase() === b.toLowerCase();
   const read = async (fn: () => Promise<boolean>) => fn().catch(() => false);
-  state.results = [{ ok: null, text: tr("result.checking") }];
-  renderResult();
+  if (!state.results) {
+    state.results = [{ ok: null, key: "result.checking" }];
+    renderResult();
+  }
 
   const sqb = new Contract(at("sqb"), CONTRACTS.SqbToken.abi, provider);
   const minter = new Contract(at("minter"), CONTRACTS.SqbMinter.abi, provider);
   const shop = new Contract(at("shop"), CONTRACTS.WorldShop.abi, provider);
-  const checks: Check[] = [];
+  const checks: Result[] = [];
   checks.push({
-    text: tr("result.sqb"),
+    key: "result.sqb",
     ok: await read(async () => same(await sqb.owner(), progress.account) && same(await sqb.minter(), at("minter")) && (await sqb.totalSupply()) === 0n && (await sqb.name()) === p.name && (await sqb.symbol()) === p.symbol),
   });
   checks.push({
-    text: tr("result.minter"),
+    key: "result.minter",
     ok: await read(async () => same(await minter.core(), OFFICIAL.core) && same(await minter.sqk(), OFFICIAL.sqk) && same(await minter.sqb(), at("sqb")) && same(await minter.owner(), progress.account) && !(await minter.mintingPaused())),
   });
   checks.push({
-    text: tr("result.shop"),
+    key: "result.shop",
     ok: await read(async () => {
       const prices = await shop.prices();
       const keys = Object.keys(p.prices) as (keyof Plan["prices"])[];
@@ -552,11 +575,12 @@ async function verify() {
       held = (await token(OFFICIAL.sqk, provider).balanceOf(at("faucet"))) as bigint;
       return same(await faucet.sqk(), OFFICIAL.sqk) && same(await faucet.owner(), progress.account) && (await faucet.dripAmount()) === p.faucet!.dripAmount && (await faucet.cooldown()) === p.faucet!.cooldown && (await faucet.maxBalance()) === p.faucet!.maxBalance && held >= p.faucet!.fund;
     });
-    checks.push({ text: tr("result.faucet", { amount: formatAmount(held) }), ok });
+    checks.push({ key: "result.faucet", values: { amount: formatAmount(held) }, ok });
   }
   const host = new URL(RPC_URL).host;
   checks.push({
-    text: tr("result.rpc", { host }),
+    key: "result.rpc",
+    values: { host },
     ok: await read(async () => {
       const response = await fetch(RPC_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_chainId", params: [] }) });
       return ((await response.json()) as { result?: string }).result === "0xaa36a7";
@@ -671,7 +695,9 @@ function renderDeploy() {
 
   const remaining = ids.filter((id) => !progress?.steps[id]?.done).length;
   if (remaining > 0) {
-    const blocked = !who ? tr("deploy.connectFirst") : !p ? tr("deploy.blocked") : null;
+    // Before the first step the settings can still change, so a faucet fill larger than the wallet's SQK stops here.
+    const fundShort = !started(progress) && !!p?.faucet && p.faucet.fund > 0n && state.sqk !== null && state.sqk < p.faucet.fund;
+    const blocked = !who ? tr("deploy.connectFirst") : !p ? tr("deploy.blocked") : fundShort ? tr("deploy.fundShort") : null;
     const label = state.busy ? tr("deploy.busy") : started(progress) ? tr("deploy.continue", { n: remaining }) : tr("deploy.start", { n: remaining });
     parts.push(
       h(
@@ -694,7 +720,7 @@ function renderResult() {
   if (!config || !progress || !p) {
     parts.push(h("p", { class: "muted" }, tr("result.waiting")));
   } else {
-    if (state.results) parts.push(checkList(state.results));
+    if (state.results) parts.push(checkList(state.results.map((r) => ({ ok: r.ok, text: tr(r.key, r.values) }))));
     const text = configText(config);
     const copy = h("button", { class: "btn small", type: "button" }, state.copied ? tr("result.copied") : tr("result.copy"));
     copy.addEventListener("click", () => {
