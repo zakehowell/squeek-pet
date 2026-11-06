@@ -175,7 +175,7 @@ npm run desktop        # the real desktop pet, in development mode
 
 `http://127.0.0.1:1420/preview.html` shows every pose side by side, replayed through the real state machine. `http://127.0.0.1:1420/world.html` runs Squeek Pet World on a bare page (`?mode=trial`, `?tab=guild`, `?lang=zh`).
 
-`npm run build:world` builds the World for the site: one script, `dist-world/squeek-world.js`, whose `mountWorld(element, { language })` draws the game inside the element's shadow root, so the page's styles and the game's never mix. Squeek Pulse keeps a copy as `src/vendor/squeek-world.js`; its first line names the commit it was built from.
+`npm run build:world` builds the World for the site: one script, `dist-world/squeek-world.js`, whose `mountWorld(element, { language })` draws the game inside the element's shadow root, so the page's styles and the game's never mix. Squeek Pulse keeps a copy as `src/vendor/squeek-world.js`; its first line names the commit it was built from, and the site's build keeps that line at the end of the deployed `world.js`, so you can check which commit is live.
 
 ![All poses](docs/screenshots/poses.png)
 

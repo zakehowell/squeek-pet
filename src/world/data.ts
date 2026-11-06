@@ -356,7 +356,7 @@ export interface RouteSpec {
 export const ROUTES: Record<RouteId, RouteSpec> = {
   mossy: {
     id: "mossy",
-    name: n("Mossy Trail", "苔藓小径"),
+    name: n("Mossy Trail", "青苔小径"),
     area: "meadow",
     length: 3000,
     trail: ["wood", "stone"],

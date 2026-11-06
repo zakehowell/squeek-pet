@@ -29,7 +29,9 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        banner: `// Squeek Pet World ${process.env.npm_package_version ?? ""} (squeek-pet ${commit()}), MIT License.\n// Built from https://github.com/zakehowell/squeek-pet (src/world) with \`npm run build:world\`; do not edit by hand.`,
+        // A /*! comment, so the site's minifier keeps it (at the end of world.js) and
+        // anyone can see which commit is live.
+        banner: `/*! Squeek Pet World ${process.env.npm_package_version ?? ""} (squeek-pet ${commit()}), MIT License.\n * Built from https://github.com/zakehowell/squeek-pet (src/world) with \`npm run build:world\`; do not edit by hand. */`,
       },
     },
   },
