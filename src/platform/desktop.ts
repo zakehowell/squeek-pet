@@ -29,6 +29,7 @@ export interface CursorEvent {
 export interface TrayLabels {
   toggle: string;
   details: string;
+  world: string;
   demo: string;
   settings: string;
   quit: string;

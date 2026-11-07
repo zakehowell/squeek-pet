@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { PetMachine, type Effect } from "../src/core/pet-machine";
 import { demoSnapshot } from "../src/core/demo";
-import { badgeFor, bubbleContent, panelContent, petLabel, toastContent } from "../src/pet/present";
+import { readFileSync } from "node:fs";
+import { DOCS_URL, EXPLORER, PULSE_URL, WORLD_URL, badgeFor, bubbleContent, panelContent, petLabel, toastContent } from "../src/pet/present";
 import { T0, snap, type SnapOptions } from "./helpers";
 
 function machineWith(...readings: SnapOptions[]) {
@@ -110,5 +111,17 @@ describe("mini panel", () => {
     const panel = panelContent(demo.state, T0, "en");
     expect(panel.tx).toBeNull();
     expect(panel.source).toBe("Source: local demo loop. Not real data.");
+  });
+});
+
+describe("links", () => {
+  it("opens Squeek Pet World on its own site, and the opener allows every page the pet links", () => {
+    expect(WORLD_URL).toBe("https://world.squeekpulse.xyz/");
+    const capability = JSON.parse(readFileSync(new URL("../src-tauri/capabilities/default.json", import.meta.url), "utf8"));
+    const opener = capability.permissions.find((p: unknown) => typeof p === "object" && (p as { identifier: string }).identifier === "opener:allow-open-url");
+    const allowed: string[] = opener.allow.map((entry: { url: string }) => entry.url);
+    const allows = (url: string) => allowed.some((pattern) => (pattern.endsWith("/*") ? url.startsWith(pattern.slice(0, -1)) : url === pattern));
+    for (const url of [PULSE_URL, WORLD_URL, DOCS_URL, `${EXPLORER}/tx/0x01`]) expect(allows(url), url).toBe(true);
+    expect(allows("https://world.squeekpulse.xyz.example/"), "only the World's own host").toBe(false);
   });
 });
