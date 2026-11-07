@@ -73,6 +73,7 @@ struct CursorEvent {
 struct TrayItems {
     toggle: MenuItem<Wry>,
     details: MenuItem<Wry>,
+    world: MenuItem<Wry>,
     demo: CheckMenuItem<Wry>,
     settings: MenuItem<Wry>,
     quit: MenuItem<Wry>,
@@ -83,6 +84,7 @@ struct TrayItems {
 struct TrayLabels {
     toggle: String,
     details: String,
+    world: String,
     demo: String,
     settings: String,
     quit: String,
@@ -319,6 +321,7 @@ fn set_tray_labels(items: tauri::State<'_, TrayItems>, labels: TrayLabels) -> Re
     let result = (|| -> tauri::Result<()> {
         items.toggle.set_text(labels.toggle)?;
         items.details.set_text(labels.details)?;
+        items.world.set_text(labels.world)?;
         items.demo.set_text(labels.demo)?;
         items.demo.set_checked(labels.demo_on)?;
         items.settings.set_text(labels.settings)?;
@@ -484,6 +487,7 @@ fn create_hud(app: &AppHandle) -> tauri::Result<()> {
 fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     let toggle = MenuItem::with_id(app, "toggle", "Show / Hide Squeek Pet", true, None::<&str>)?;
     let details = MenuItem::with_id(app, "details", "Show details", true, None::<&str>)?;
+    let world = MenuItem::with_id(app, "world", "Open Squeek Pet World", true, None::<&str>)?;
     let demo = CheckMenuItem::with_id(app, "demo", "Demo mode", true, false, None::<&str>)?;
     let settings = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit Squeek Pet", true, None::<&str>)?;
@@ -492,6 +496,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
         &[
             &toggle,
             &details,
+            &world,
             &PredefinedMenuItem::separator(app)?,
             &demo,
             &settings,
@@ -509,6 +514,10 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
             "details" => {
                 set_pet_visible(app, true);
                 let _ = app.emit_to(PET, "pet://menu", "details");
+            }
+            // Squeek Pet World is a web page; the pet window opens it in the browser.
+            "world" => {
+                let _ = app.emit_to(PET, "pet://menu", "world");
             }
             // The pet window owns the setting; it updates the check mark back.
             "demo" => {
@@ -547,6 +556,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     app.manage(TrayItems {
         toggle,
         details,
+        world,
         demo,
         settings,
         quit,

@@ -15,7 +15,7 @@ import { Hud } from "./pet/hud";
 import { DesktopHud } from "./pet/desktop-hud";
 import { LiveButton } from "./pet/live-button";
 import { mountPlayDock } from "./pet/play-dock";
-import { PULSE_URL, bubbleContent, offersLiveStream, panelContent, petLabel, toastContent } from "./pet/present";
+import { PULSE_URL, WORLD_URL, bubbleContent, offersLiveStream, panelContent, petLabel, toastContent } from "./pet/present";
 import { desktop, inTauri, type HitRect, type MenuItems } from "./platform/desktop";
 import { Sounds } from "./sound";
 
@@ -122,6 +122,7 @@ function updateTray() {
   desktop.setTrayLabels({
     toggle: tr("tray.toggle"),
     details: tr("menu.details"),
+    world: tr("menu.world"),
     demo: tr("menu.demo"),
     settings: tr("menu.settings"),
     quit: tr("menu.quit"),
@@ -153,6 +154,7 @@ desktop.onSettings((raw) => {
 });
 desktop.onTrayAction((action) => {
   if (action === "details") setPanel(true);
+  if (action === "world") desktop.openUrl(WORLD_URL);
   if (action === "demo") change({ demo: !settings.demo });
 });
 
@@ -284,6 +286,7 @@ function contextMenu(): MenuItems {
     { text: tr("menu.demo"), checked: settings.demo, action: () => change({ demo: !settings.demo }) },
     { item: "Separator" },
     { text: tr("menu.pulse"), action: () => desktop.openUrl(PULSE_URL) },
+    { text: tr("menu.world"), action: () => desktop.openUrl(WORLD_URL) },
     { text: tr("menu.settings"), action: () => desktop.openSettings() },
     { item: "Separator" },
     { text: tr("menu.hide"), action: () => desktop.hidePet() },
